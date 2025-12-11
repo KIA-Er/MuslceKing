@@ -6,7 +6,7 @@ from muscleking.app.models.model_chat import ChatRequest, ChatResponse
 import uuid
 from typing import Optional
 from sqlalchemy.orm import Session
-from muscleking.app.services.service_chat import get_or_create_session, save_message
+from muscleking.app.services.service_chat import get_or_create_session, save_message, process_agent_query   
 
 router = APIRouter()
 
@@ -24,9 +24,30 @@ async def chat(
     # 存储用户消息
     await save_message(db, session_id, request.message, is_user=True)
 
-    response = ChatResponse(
-        message="这是一个示例回复。",
-        session_id=request.session_id or "new_session",
-        message_id="msg_12345"
+    # 进行智能体查询
+    result = await process_agent_query(
+        request.message,
+        session_id,
+        request.image_path,
+        request.file_path,
     )
-    return response
+
+    # 存储系统回复消息
+    message_id = await save_message(
+        db,
+        session_id,
+        result["message"],
+        is_user=False,
+        route=result["route"],
+        metadata=result.get("metadata")
+    )
+    
+    return ChatResponse(
+        message=result["message"],
+        session_id=session_id,
+        message_id=message_id or str(uuid.uuid4()),
+        route=result["route"],
+        route_logic=result["route_logic"],
+        sources=result.get("sources"),
+        metadata=result.get("metadata")
+    )
