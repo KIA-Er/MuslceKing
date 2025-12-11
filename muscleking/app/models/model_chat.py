@@ -25,3 +25,7 @@ class ChatResponse(BaseModel):
     sources: Optional[List[Dict[str,Any]]] = Field(None, description="相关的源文档列表")
     metadata: Optional[Dict[str,Any]] = Field(None, description="附加的元数据信息")
     timestamp: datetime = Field(default_factory=datetime.now, description="响应时间戳")
+
+class SessionInfo(BaseModel):
+    """基础的聊天会话模型"""
+    user_id: str = Field(..., description="Session UUID")
