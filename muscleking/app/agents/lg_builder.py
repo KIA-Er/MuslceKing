@@ -100,11 +100,9 @@ async def analyze_and_route_query(
     return {"router": sanitized_router}
 
 
-
-
 #根据关键词进行路由分类
 def _heuristic_router(question: str) -> Optional[Router]:
-    """Fallback routing based on simple keyword heuristics for fitness domain."""
+    """基于关键词的启发式路由,用于分类用户query.(只写了lightrag-query和general-query的关键词)"""
     if not question:
         return None
 
@@ -112,72 +110,14 @@ def _heuristic_router(question: str) -> Optional[Router]:
 
     # === lightrag 关键词：动作要点 / 训练步骤 / 计划分解 ===
     lightrag_keywords = [
-        "怎么练",
-        "如何练",
-        "怎么做",
-        "如何做",
-        "动作",
-        "要点",
-        "姿势",
-        "步骤",
-        "计划",
-        "训练方案",
-        "动作讲解",
-        "纠正",
-        "矫正",
-        "练法",
-        "多少组",
-        "多少次",
-        "一天练什么",
-        "周计划",
+        "怎么练","如何练","怎么做",
+        "如何做","动作","要点","姿势","计划","训练计划",
     ]
 
-    # === Text2SQL 关键词：统计类问题 / 数据 / 数量 / 排名 / 对比 ===
-    text2sql_keywords = [
-        "多少",
-        "几次",
-        "体脂",
-        "占比",
-        "平均",
-        "总数",
-        "统计",
-        "排名",
-        "top",
-        "最有效",
-        "最强",
-        "对比",
-        "数据",
+    general_keywords = [
+        "天气", "笑话", "故事", "翻译", "怎么写代码", "调试",
+         "推荐电影", "推荐书", "如何学习", "考试",
     ]
-
-    # === Image Query：照片动作纠错/体型判断（尽量匹配关键字）===
-    image_keywords = [
-        "图片",
-        "照片",
-        "体型",
-        "动作是否正确",
-        "姿势对吗",
-        "帮我看看这个动作",
-    ]
-
-    # === File Query：训练日志、饮食记录、体检报告等文件 ===
-    file_keywords = [
-        "日志",
-        "记录",
-        "pdf",
-        "表格",
-        "报告",
-        "体检",
-        "训练记录",
-        "饮食记录",
-    ]
-
-    # --- 匹配 text2sql ---
-    if any(keyword in lowered for keyword in text2sql_keywords):
-        return Router(
-            type="text2sql-query",
-            logic="keyword fallback: text2sql",
-            question=question,
-        )
 
     # --- 匹配 lightrag ---
     if any(keyword in lowered for keyword in lightrag_keywords):
@@ -186,20 +126,11 @@ def _heuristic_router(question: str) -> Optional[Router]:
             logic="keyword fallback: lightrag",
             question=question,
         )
-
-    # --- 匹配 image query ---
-    if any(keyword in lowered for keyword in image_keywords):
+    # --- 匹配 general ---
+    if any(keyword in lowered for keyword in general_keywords):
         return Router(
-            type="image-query",
-            logic="keyword fallback: image",
-            question=question,
-        )
-
-    # --- 匹配 file query ---
-    if any(keyword in lowered for keyword in file_keywords):
-        return Router(
-            type="file-query",
-            logic="keyword fallback: file",
+            type="general-query",
+            logic="keyword fallback: general",
             question=question,
         )
 
