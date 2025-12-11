@@ -7,12 +7,15 @@ from sqlalchemy.orm import Session
 from muscleking.app.models.model_chat import SessionInfo
 from muscleking.app.agents.lg_builder import graph
 from loguru import logger
+from fastapi import Depends
+from muscleking.app.persistence.crud.base import chat_session
 
 
 async def get_or_create_session(db: Session, session_id: Optional[str], user_id: str) -> str:
     """获取或创建聊天会话"""
     if session_id:
-        pass  # 查询数据库是否存在该会话
+        # 查询数据库是否存在该会话
+        session = chat_session.get(db, obj_in=session_id)
     else:
         # 创建新会话
         new_session_id = str(uuid.uuid4())
