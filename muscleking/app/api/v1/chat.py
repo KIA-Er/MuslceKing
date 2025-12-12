@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from muscleking.app.services.service_chat import get_or_create_session, save_message, process_agent_query   
 
 router = APIRouter()
-
+#api/v1/chat
 @router.post("/",response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
