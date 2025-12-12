@@ -41,6 +41,19 @@ class Settings(BaseSettings):
         env_file = ".env"   # 从.env读取配置
         case_sensitive = False  # 大小写不敏感
         extra = "ignore"    # 忽略额外的环境变量
+    
+    # OpenAI compatibility (使用 LLM 配置)
+    @property
+    def OPENAI_API_KEY(self) -> Optional[str]:
+        return self.LLM_API_KEY
+
+    @property
+    def OPENAI_API_BASE(self) -> Optional[str]:
+        return self.LLM_BASE_URL
+
+    @property
+    def OPENAI_MODEL(self) -> str:
+        return self.LLM_MODEL
 
     def get_cors_origins(self) -> List[str]:
         """获取CORS允许的来源列表"""

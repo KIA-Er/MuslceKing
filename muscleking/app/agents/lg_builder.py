@@ -22,7 +22,7 @@ from muscleking.app.utils.utils import retrieve_and_parse_schema_from_graph_for_
 logger = logger.bind(service="lg_builder")
 
 
-# 意图识别
+# 意图识别：llm路由
 async def analyze_and_route_query(
         state: AgentState, *, config: RunnableConfig
 ) -> dict[str, Router]:
@@ -106,7 +106,7 @@ async def analyze_and_route_query(
 
 
 
-#根据关键词进行路由分类
+# 意图识别：启发式路由
 def _heuristic_router(question: str) -> Optional[Router]:
     """基于关键词的启发式路由,用于分类用户query.(只写了lightrag-query和general-query的关键词)"""
     if not question:
@@ -143,7 +143,7 @@ def _heuristic_router(question: str) -> Optional[Router]:
     return None
 
 
-# 根据意图识别决定采取的agent方法
+# 根据意图识别路由到不同处理节点
 def route_query(
         state: AgentState,
 ) -> Literal[
