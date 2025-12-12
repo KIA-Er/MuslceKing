@@ -1,19 +1,20 @@
 """
 具有智能体聊天功能的API
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from muscleking.app.models.model_chat import ChatRequest, ChatResponse
 import uuid
 from typing import Optional
 from sqlalchemy.orm import Session
-from muscleking.app.services.service_chat import get_or_create_session, save_message, process_agent_query   
+from muscleking.app.services.service_chat import get_or_create_session, save_message, process_agent_query
+from muscleking.app.persistence.core.database import get_db
 
 router = APIRouter()
-#api/v1/chat
+
 @router.post("/",response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
-    db : Session = None  # 假设有一个数据库会话依赖
+    db: Session = Depends(get_db)  # 使用数据库会话依赖
 ) -> ChatResponse:
     """
     具有Agent智能体聊天功能的API端点

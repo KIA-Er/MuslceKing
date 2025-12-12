@@ -29,12 +29,23 @@ class Settings(BaseSettings):
     LLM_MODEL: str = Field(default="gpt-4o-mini", description="LLM model name")
     LLM_API_KEY: Optional[str] = None
     LLM_BASE_URL: Optional[str] = Field(default=None, description="LLM API base URL")
+    
+    # 兼容性配置 - 为了兼容lg_builder.py中的配置名称
+    OPENAI_API_KEY: Optional[str] = None
+    OPENAI_MODEL: str = Field(default="gpt-4o-mini", description="OpenAI model name")
+    OPENAI_API_BASE: Optional[str] = None
 
     # CORS配置 - 使用字符串，在代码中分割
     # 允许以下端口访问后端api
     CORS_ORIGINS: str = Field(
         default="http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000",
         description="Allowed CORS origins",
+    )
+
+    # 数据库配置
+    DATABASE_URL: str = Field(
+        default="mysql+pymysql://muscleking_user:musclepass@localhost:3306/muscleking_db",
+        description="Database connection URL"
     )
 
     class Config:

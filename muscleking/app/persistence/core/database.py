@@ -9,7 +9,7 @@ from typing import Dict, Generator, Iterator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
-from muscleking.config import settings
+from muscleking.config.settings import settings
 
 _DEFAULT_LOG_ECHO = bool(True)
 

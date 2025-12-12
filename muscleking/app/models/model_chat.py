@@ -26,6 +26,11 @@ class ChatResponse(BaseModel):
     metadata: Optional[Dict[str,Any]] = Field(None, description="附加的元数据信息")
     timestamp: datetime = Field(default_factory=datetime.now, description="响应时间戳")
 
+
 class SessionInfo(BaseModel):
-    """基础的聊天会话模型"""
-    user_id: str = Field(..., description="Session UUID")
+    """会话信息模型"""
+    session_id: str = Field(..., description="会话ID")
+    user_id: str = Field(..., description="用户ID")
+    title: str = Field(..., description="会话标题")
+    created_at: datetime = Field(..., description="创建时间")
+    message_count: int = Field(..., description="消息数量")

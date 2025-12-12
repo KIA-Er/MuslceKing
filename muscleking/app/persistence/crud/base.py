@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from muscleking.app.persistence.core.database import Base
 from muscleking.app.persistence.db.models.chat_session import ChatSession
+from muscleking.app.persistence.db.models.chat_message import ChatMessage
 
 
 ModelType = TypeVar("ModelType", bound = Base)
@@ -45,3 +46,4 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
 
 #创建模型实例
 chat_session = CRUDBase(ChatSession)
+chat_message = CRUDBase(ChatMessage)

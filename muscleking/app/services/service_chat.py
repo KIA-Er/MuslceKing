@@ -15,19 +15,52 @@ async def get_or_create_session(db: Session, session_id: Optional[str], user_id:
     """获取或创建聊天会话"""
     if session_id:
         # 查询数据库是否存在该会话
-        session = chat_session.get(db, obj_in=session_id)
+        session = chat_session.get(db, session_id=session_id)
+        if session:
+            return session_id
+        else:
+            # 如果会话不存在，创建新会话
+            new_session_id = str(uuid.uuid4())
+            chat_session.create(db, obj_in={
+                "id": new_session_id,
+                "user_id": user_id,
+                "title": "新会话"
+            })
+            return new_session_id
     else:
         # 创建新会话
         new_session_id = str(uuid.uuid4())
-        pass    # 创建Session信息对象并保存到数据库
-    return new_session_id
+        chat_session.create(db, obj_in={
+            "id": new_session_id,
+            "user_id": user_id,
+            "title": "新会话"
+        })
+        return new_session_id
 
 async def save_message(db: Session, session_id: str, message: str, is_user: bool,
                        route: Optional[str] = None,
                        metadata: Optional[Dict[str, Any]] = None) -> str:
     """保存聊天消息到数据库并返回message_id"""
     message_id = str(uuid.uuid4())
-    pass  # 创建消息对象并保存到数据库
+    
+    # 获取当前会话的消息数量作为order_index
+    from muscleking.app.persistence.db.models.chat_message import ChatMessage
+    max_order = db.query(ChatMessage).filter(ChatMessage.session_id == session_id).count()
+    
+    # 创建消息对象并保存到数据库
+    chat_message = ChatMessage(
+        id=message_id,
+        session_id=session_id,
+        content=message,
+        is_user=is_user,
+        route=route,
+        message_metadata=metadata,
+        order_index=max_order + 1
+    )
+    db.add(chat_message)
+    db.commit()
+    db.refresh(chat_message)
+    
     return message_id
 
 async def process_agent_query(message: str, session_id: str,
