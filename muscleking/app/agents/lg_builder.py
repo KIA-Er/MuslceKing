@@ -108,7 +108,7 @@ async def analyze_and_route_query(
 
 #根据关键词进行路由分类
 def _heuristic_router(question: str) -> Optional[Router]:
-    """Fallback routing based on simple keyword heuristics for fitness domain."""
+    """基于关键词的启发式路由,用于分类用户query.(只写了lightrag-query和general-query的关键词)"""
     if not question:
         return None
 
@@ -116,72 +116,14 @@ def _heuristic_router(question: str) -> Optional[Router]:
 
     # === lightrag 关键词：动作要点 / 训练步骤 / 计划分解 ===
     lightrag_keywords = [
-        "怎么练",
-        "如何练",
-        "怎么做",
-        "如何做",
-        "动作",
-        "要点",
-        "姿势",
-        "步骤",
-        "计划",
-        "训练方案",
-        "动作讲解",
-        "纠正",
-        "矫正",
-        "练法",
-        "多少组",
-        "多少次",
-        "一天练什么",
-        "周计划",
+        "怎么练","如何练","怎么做",
+        "如何做","动作","要点","姿势","计划","训练计划",
     ]
 
-    # === Text2SQL 关键词：统计类问题 / 数据 / 数量 / 排名 / 对比 ===
-    text2sql_keywords = [
-        "多少",
-        "几次",
-        "体脂",
-        "占比",
-        "平均",
-        "总数",
-        "统计",
-        "排名",
-        "top",
-        "最有效",
-        "最强",
-        "对比",
-        "数据",
+    general_keywords = [
+        "天气", "笑话", "故事", "翻译", "怎么写代码", "调试",
+         "推荐电影", "推荐书", "如何学习", "考试",
     ]
-
-    # === Image Query：照片动作纠错/体型判断（尽量匹配关键字）===
-    image_keywords = [
-        "图片",
-        "照片",
-        "体型",
-        "动作是否正确",
-        "姿势对吗",
-        "帮我看看这个动作",
-    ]
-
-    # === File Query：训练日志、饮食记录、体检报告等文件 ===
-    file_keywords = [
-        "日志",
-        "记录",
-        "pdf",
-        "表格",
-        "报告",
-        "体检",
-        "训练记录",
-        "饮食记录",
-    ]
-
-    # --- 匹配 text2sql ---
-    if any(keyword in lowered for keyword in text2sql_keywords):
-        return Router(
-            type="text2sql-query",
-            logic="keyword fallback: text2sql",
-            question=question,
-        )
 
     # --- 匹配 lightrag ---
     if any(keyword in lowered for keyword in lightrag_keywords):
@@ -190,20 +132,11 @@ def _heuristic_router(question: str) -> Optional[Router]:
             logic="keyword fallback: lightrag",
             question=question,
         )
-
-    # --- 匹配 image query ---
-    if any(keyword in lowered for keyword in image_keywords):
+    # --- 匹配 general ---
+    if any(keyword in lowered for keyword in general_keywords):
         return Router(
-            type="image-query",
-            logic="keyword fallback: image",
-            question=question,
-        )
-
-    # --- 匹配 file query ---
-    if any(keyword in lowered for keyword in file_keywords):
-        return Router(
-            type="file-query",
-            logic="keyword fallback: file",
+            type="general-query",
+            logic="keyword fallback: general",
             question=question,
         )
 
@@ -266,7 +199,38 @@ def _ensure_router(router_obj: Any, *, fallback_question: str = "") -> Router:
     return Router(type="kb-query", logic="missing router", question=fallback_question)
 
 
-#需要额外消息
+#类型一：直接用大模型回答不含本地及其他外部知识
+async def respond_to_general_query(
+        state: AgentState, *, config: RunnableConfig
+) -> Dict[str, List[BaseMessage]]:
+    """生成对一般查询的响应，完全基于大模型，不会触发任何外部服务的调用，包括自定义工具、知识库查询等。
+    当路由器将查询分类为一般问题时，将调用此节点。
+    Args:
+        state (AgentState): 当前代理状态，包括对话历史和路由逻辑。
+        config (RunnableConfig): 用于配置响应生成的模型。
+    Returns:
+        Dict[str, List[BaseMessage]]: 包含'messages'键的字典，其中包含生成的响应。
+    """
+    logger.info("-----generate general-query response-----")
+
+    # 使用大模型生成回复
+    model = ChatOpenAI(openai_api_key=settings.OPENAI_API_KEY, model_name=settings.OPENAI_MODEL,
+                       openai_api_base=settings.OPENAI_API_BASE, temperature=0.7,
+                       tags=["general_query"])
+
+    router = _ensure_router(getattr(state, "router", None), fallback_question=state.messages[-1].content if state.messages else "")
+    state.router = router
+    system_prompt = GENERAL_QUERY_SYSTEM_PROMPT.format(
+        logic=router.logic
+    )
+
+    messages = [{"role": "system", "content": system_prompt}] + state.messages
+    response = await model.ainvoke(messages)
+    return {"messages": [response]}
+
+
+
+# 类型二：需要从用户获取更多信息再回答
 async def get_additional_info(
         state: AgentState, *, config: RunnableConfig
 ) -> Dict[str, List[BaseMessage]]:
@@ -379,44 +343,6 @@ async def get_additional_info(
         messages = [{"role": "system", "content": system_prompt}] + state.messages
         response = await model.ainvoke(messages)
         return {"messages": [response]}
-
-
-
-
-#类型一：直接用大模型回答不含本地及其他外部知识
-async def respond_to_general_query(
-        state: AgentState, *, config: RunnableConfig
-) -> Dict[str, List[BaseMessage]]:
-    """生成对一般查询的响应，完全基于大模型，不会触发任何外部服务的调用，包括自定义工具、知识库查询等。
-    当路由器将查询分类为一般问题时，将调用此节点。
-    Args:
-        state (AgentState): 当前代理状态，包括对话历史和路由逻辑。
-        config (RunnableConfig): 用于配置响应生成的模型。
-    Returns:
-        Dict[str, List[BaseMessage]]: 包含'messages'键的字典，其中包含生成的响应。
-    """
-    logger.info("-----generate general-query response-----")
-
-    # 使用大模型生成回复
-    model = ChatOpenAI(openai_api_key=settings.OPENAI_API_KEY, model_name=settings.OPENAI_MODEL,
-                       openai_api_base=settings.OPENAI_API_BASE, temperature=0.7,
-                       tags=["general_query"])
-
-    router = _ensure_router(getattr(state, "router", None), fallback_question=state.messages[-1].content if state.messages else "")
-    state.router = router
-    system_prompt = GENERAL_QUERY_SYSTEM_PROMPT.format(
-        logic=router.logic
-    )
-
-    messages = [{"role": "system", "content": system_prompt}] + state.messages
-    response = await model.ainvoke(messages)
-    return {"messages": [response]}
-
-
-
-
-
-
 
 
 
