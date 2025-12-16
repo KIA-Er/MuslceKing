@@ -376,7 +376,7 @@ async def create_kb_query(
     )
     kb_filter_expr = config_opts.get("kb_filter_expr")
 
-    knowledge_service: Optional[KnowledgeService] = None
+    knowledge_service: Optional[KnowledgeBaseService] = None
     try:
         if not settings.OPENAI_API_KEY:
             raise RuntimeError("OPENAI_API_KEY is not configured for KB multi-tool workflow.")
@@ -389,7 +389,7 @@ async def create_kb_query(
             tags=["kb_multi_tool"],
         )
 
-        knowledge_service = KnowledgeService()
+        knowledge_service = KnowledgeBaseService()
 
         external_url = settings.KB_EXTERNAL_SEARCH_URL
         if not external_url and settings.INGEST_SERVICE_URL:
@@ -434,7 +434,7 @@ async def create_kb_query(
 
     # Fallback: direct KB query
     if knowledge_service is None:
-        knowledge_service = KnowledgeService()
+        knowledge_service = KnowledgeBaseService()
     knowledge_node = create_knowledge_query_node(knowledge_service=knowledge_service)
     input_state: KnowledgeQueryInputState = {
         "task": last_message,

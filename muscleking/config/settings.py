@@ -83,5 +83,17 @@ class Settings(BaseSettings):
         default=80,
         description="Chunk overlap used when splitting documents",
     )
+    
+    MILVUS_HOST: str = "localhost"
+    MILVUS_PORT: int = 19530
+    MILVUS_COLLECTION: str = "fitness"
+    MILVUS_INDEX_TYPE: str = "IVF_FLAT" # 倒排索引（IVF） + 精确计算（FLAT）
+    MILVUS_METRIC_TYPE: str = "IP"  # 内积（Inner Product）
+
+    # Embedding configuration
+    EMBEDDING_MODEL_NAME: str = Field(default="Qwen/Qwen3-Embedding-0.6B", description="Embedding model name")
+    EMBEDDING_API_KEY: Optional[str] = None
+    EMBEDDING_BASE_URL: Optional[str] = None
+    EMBEDDING_DIMENSION: Optional[int] = Field(default=1024, description="Embedding dimension")
 
 settings = Settings()

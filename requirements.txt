@@ -19,6 +19,9 @@ langchain-core<0.4.0
 # Machine Learning
 numpy<2.0.0
 scikit-learn==1.4.2
+sentence-transformers>=2.2.0
+transformers>=4.30.0
+torch>=2.0.0
 
 # Agent Framework
 langgraph==0.2.60
