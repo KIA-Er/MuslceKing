@@ -11,12 +11,11 @@ from loguru import logger
 from langchain.embeddings import HuggingFaceEmbeddings
 
 from muscleking.config import settings
-from .embeddings import OpenAICompatibleEmbeddings
 import torch
 from .vector_store import VectorStore
 from sentence_transformers import CrossEncoder
 
-# 注意，原本的recipe_id对应现在的exercise_id，代表文档的唯一ID
+# 注意，exercise_id对应父文档的id，chunk_id(即ids)对应子文档的id
 class KnowledgeBaseService:
     """知识库服务类"""
 
@@ -329,12 +328,12 @@ class KnowledgeBaseService:
             metadatas.append(metadata)
 
         # 向量数据库存储四个列表： 
-        # ids（分块ID列表）, embeddings（嵌入向量列表）, documents（分块内容列表）, metadatas（分块元数据列表）
+        # ids（分块ID列表）, embeddings（嵌入向量列表）, contents（分块内容列表）, metadatas（分块元数据列表）
         # metadata中至少包含了base_id、chunk_id和name等信息，方便后续查询和管理
         success = self.vector_store.add_documents(
             ids=ids,
             embeddings=embeddings,
-            documents=contents,
+            contents=contents,
             metadatas=metadatas,
         )
 
