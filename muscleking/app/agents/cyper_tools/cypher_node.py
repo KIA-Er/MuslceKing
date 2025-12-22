@@ -11,7 +11,7 @@ from muscleking.app.agents.cyper_tools.cypher_utils import create_text2cypher_ge
 
 
 # 获取日志记录器
-logger = logger(service="cypher_tools")
+logger = logger.bind(service="cypher_tools")
 
 # 定义GraphRAG查询的输入状态类型
 class CypherQueryInputState(BaseModel):

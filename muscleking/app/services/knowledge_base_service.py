@@ -161,7 +161,7 @@ class KnowledgeBaseService:
         result = await asyncio.to_thread(self._store_documents, documents, embeddings)
         return result
     
-    async def _rerank_candidates(
+    async def rerank_candidates(
         self,
         query: str,
         candidates: List[Dict[str, Any]],
@@ -240,7 +240,7 @@ class KnowledgeBaseService:
 
         # 使用 reranker 精排
         if candidates and self.enable_rerank:
-            candidates = await self._rerank_candidates(query, candidates, top_k=top_k)
+            candidates = await self.rerank_candidates(query, candidates, top_k=top_k)
         if self.enable_rerank:
             candidates = [
                 r

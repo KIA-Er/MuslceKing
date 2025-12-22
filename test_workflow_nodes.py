@@ -21,7 +21,8 @@ load_dotenv(env_path)
 print(f"已加载环境变量文件: {env_path}")
 print(f"LLM_API_KEY: {'已配置' if os.getenv('LLM_API_KEY') else '未配置'}")
 
-from typing import Optional
+from typing import Optional, List
+from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
 from muscleking.config.settings import settings
 
@@ -57,6 +58,7 @@ async def test_individual_nodes():
     try:
         from muscleking.app.agents.guardrails.guardrails_node import create_guardrails_node
         from muscleking.app.agents.planner.planner_node import create_planner_node
+        from muscleking.app.agents.tool_selection.tool_selection_node import create_tool_selection_node
         print("节点模块导入成功")
     except Exception as e:
         print(f"节点模块导入失败: {e}")
@@ -64,6 +66,21 @@ async def test_individual_nodes():
         print(f"详细错误: {traceback.format_exc()}")
         return
     
+    #  定义工具模式列表
+    from muscleking.app.agents.models.tools_list import (
+        cypher_query,
+        predefined_cypher,
+        microsoft_graphrag_query,
+        text2sql_query,
+    )
+    tool_schemas: List[type[BaseModel]] = [
+        cypher_query,
+        predefined_cypher,
+        microsoft_graphrag_query,
+        text2sql_query,
+    ]
+
+
     # 创建节点
     print("\n创建测试节点...")
     try:
@@ -74,6 +91,12 @@ async def test_individual_nodes():
         )
         
         planner_node = create_planner_node(llm=llm)
+
+        tool_selection_node = create_tool_selection_node(
+            llm,
+            tool_schemas,
+            True)
+        
         print("节点创建完成")
     except Exception as e:
         print(f"节点创建失败: {e}")
@@ -133,6 +156,27 @@ async def test_individual_nodes():
                 print(f"   Planner测试失败: {e}")
                 import traceback
                 print(f"   详细错误: {traceback.format_exc()}")
+
+        # if next_action == "tool_selection":
+            print("测试Tool Selection节点...")            
+            try:
+                tool_selection_result = await tool_selection_node({"question": question})
+                print(f"   输出的内容是：{tool_selection_result}")
+                
+                # 正确访问 Command 对象的内容
+                target_node = tool_selection_result.goto.node
+                send_arg = tool_selection_result.goto.arg
+                
+                print(f"   转到目标节点: {target_node}")
+                print(f"   任务内容: {send_arg.get('task', '')}")
+                print(f"   查询名称: {send_arg.get('query_name', '')}")
+                print(f"   查询参数: {send_arg.get('query_parameters', '')}")
+                print(f"   执行步骤: {send_arg.get('steps', '')}")
+                
+            except Exception as e:
+                print(f"   Tool Selection测试失败: {e}")
+                import traceback
+                traceback.print_exc()
         
         print("=" * 50)
     

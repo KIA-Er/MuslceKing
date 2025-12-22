@@ -64,7 +64,7 @@ def create_guardrails_node(
             "多少",
         ]
 
-        if any(keyword in question for keyword in heuristics_keywords) or "?" in question or "？" in question:
+        if any(keyword in question for keyword in heuristics_keywords) or "?" in question or "？" in question:#TODO 有bug，“今天天气如何？”能够通过范围筛选
             logger.info(
                 "Fitness Guardrails: 命中健身关键词，直接进入 planner。",
                 extra={"question": question},
