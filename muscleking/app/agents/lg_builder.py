@@ -18,6 +18,8 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage
 from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
 from muscleking.app.utils.utils import retrieve_and_parse_schema_from_graph_for_prompts
+from muscleking.app.services.knowledge_base_service import KnowledgeBaseService
+from muscleking.app.agents.kb_workflow import create_kb_multi_tool_workflow
 
 logger = logger.bind(service="lg_builder")
 
@@ -392,9 +394,10 @@ async def create_kb_query(
         knowledge_service = KnowledgeBaseService()
 
         external_url = settings.KB_EXTERNAL_SEARCH_URL
+        # 如果没有配置外部搜索URL，尝试从INGEST_SERVICE_URL构建
         if not external_url and settings.INGEST_SERVICE_URL:
             external_url = f"{settings.INGEST_SERVICE_URL.rstrip('/')}/api/search"
-
+        # 创建知识库多工作流
         workflow = create_kb_multi_tool_workflow(
             llm=llm,
             knowledge_service=knowledge_service,
