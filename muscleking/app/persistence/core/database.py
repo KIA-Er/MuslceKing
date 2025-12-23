@@ -17,6 +17,7 @@ _connect_args: Dict[str, bool] = {}
 if settings.DATABASE_URL.startswith("sqlite"):
     _connect_args = {"check_same_thread": False}
 
+# 数据库引擎
 engine = create_engine(
     settings.DATABASE_URL,
     echo=_DEFAULT_LOG_ECHO,
@@ -25,6 +26,7 @@ engine = create_engine(
     connect_args=_connect_args,
 )
 
+# 会话工厂
 SessionLocal = sessionmaker(
     bind=engine,
     autocommit=False,
@@ -53,7 +55,7 @@ def get_db() -> Generator[Session, None, None]:
     """
     Provide a database session dependency for FastAPI routes.
     """
-    db = SessionLocal()
+    db = SessionLocal() # 得到一个数据库会话
     try:
         yield db
     finally:

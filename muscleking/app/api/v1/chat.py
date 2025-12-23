@@ -2,7 +2,7 @@
 具有智能体聊天功能的API
 """
 from fastapi import APIRouter, HTTPException, Depends
-from muscleking.app.models.model_chat import ChatRequest, ChatResponse
+from muscleking.app.agents.models.model_chat import ChatRequest, ChatResponse
 import uuid
 from typing import Optional
 from sqlalchemy.orm import Session

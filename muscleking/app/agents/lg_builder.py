@@ -438,7 +438,7 @@ async def create_kb_query(
         # 将sources附加到消息的additional_kwargs中
         ai_message.additional_kwargs["sources"] = sources
 
-        return {"messages": [ai_message], "sources": sources}
+        return {"messages": [ai_message]}
     except Exception as exc:
         logger.warning("KB multi-tool workflow unavailable (%s); falling back to direct search.", exc)
 
