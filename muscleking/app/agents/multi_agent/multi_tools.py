@@ -34,6 +34,30 @@ from muscleking.app.agents.cyper_tools.cypher_node import create_cypher_query_no
 # 导入Cypher示例检索器基类
 from muscleking.app.agents.retrieve.base import BaseCypherExampleRetriever
 # 导入预定义Cypher节点
+<<<<<<< HEAD:muscleking/app/agents/multi_agent/multi_tools.py
+from muscleking.app.agents.predefined_cypher.predefined_cypher_node import create_predefined_cypher_node
+# 导入自定义工具函数节点
+from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.customer_tools import create_graphrag_query_node
+from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.text2cypher.text2sql_tool import create_text2sql_tool_node
+
+from muscleking.config import settings
+from loguru import logger
+from gustobot.infrastructure.knowledge import KnowledgeService
+
+
+from muscleking.app.agents.final_answer.final_answer import create_final_answer_node
+
+
+
+from muscleking.app.agents.final_answer.summarize import create_summarization_node
+
+
+
+from muscleking.app.agents.multi_agent.edge import (
+    guardrails_conditional_edge,
+    map_reduce_planner_to_tool_selection,
+)
+=======
 # from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.predefined_cypher import create_predefined_cypher_node
 # # 导入自定义工具函数节点
 # from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.customer_tools import create_graphrag_query_node
@@ -57,6 +81,7 @@ from muscleking.app.agents.retrieve.base import BaseCypherExampleRetriever
 #     guardrails_conditional_edge,
 #     map_reduce_planner_to_tool_selection,
 # )
+>>>>>>> dc6858606e12fe7e8c7dc566f8756ed96ee7adeb:muscleking/app/agents/multi_tools.py
 
 from dataclasses import dataclass, field
 # 强制要求数据类中的所有字段必须以关键字参数的形式提供。即不能以位置参数的方式传递。

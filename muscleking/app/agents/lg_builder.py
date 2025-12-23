@@ -22,7 +22,7 @@ from muscleking.app.services.knowledge_base_service import KnowledgeBaseService
 from muscleking.app.agents.kb_workflow import create_kb_multi_tool_workflow
 from muscleking.app.agents.retrieve.fitness_retriever import \
     FitnessCypherRetriever
-from muscleking.app.agents.multi_tools import (
+from muscleking.app.agents.multi_agent.multi_tools import (
     create_multi_tool_workflow,
 ) 
 from pydantic import BaseModel, Field
