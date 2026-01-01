@@ -41,7 +41,8 @@ from muscleking.app.agents.text2sql.text2sql_tool import create_text2sql_tool_no
 
 from muscleking.config import settings
 from loguru import logger
-from gustobot.infrastructure.knowledge import KnowledgeService
+from muscleking.app.services.knowledge_base_service import KnowledgeBaseService
+
 
 
 from muscleking.app.agents.final_answer.final_answer import create_final_answer_node
@@ -56,6 +57,29 @@ from muscleking.app.agents.multi_agent.edge import (
     guardrails_conditional_edge,
     map_reduce_planner_to_tool_selection,
 )
+# from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.predefined_cypher import create_predefined_cypher_node
+# # 导入自定义工具函数节点
+# from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.customer_tools import create_graphrag_query_node
+# from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.text2cypher.text2sql_tool import create_text2sql_tool_node
+
+# from muscleking.config import settings
+# from gustobot.infrastructure.core.logger import get_logger
+# from gustobot.infrastructure.knowledge import KnowledgeService
+
+
+# from ...components.errors import create_error_tool_selection_node
+# from ...components.final_answer import create_final_answer_node
+
+
+
+# from ...components.summarize import create_summarization_node
+
+
+
+# from .edges import (
+#     guardrails_conditional_edge,
+#     map_reduce_planner_to_tool_selection,
+# )
 
 from dataclasses import dataclass, field
 # 强制要求数据类中的所有字段必须以关键字参数的形式提供。即不能以位置参数的方式传递。
@@ -227,7 +251,7 @@ class KBOutputState(TypedDict):
 
 def create_kb_multi_tool_workflow(
     llm: BaseChatModel,
-    knowledge_service: Optional[KnowledgeService] = None,
+    knowledge_service: Optional[KnowledgeBaseService] = None,
     *,
     top_k: Optional[int] = None,
     similarity_threshold: Optional[float] = None,
@@ -245,7 +269,7 @@ def create_kb_multi_tool_workflow(
     and then synthesises a response with safety-aware instructions.
     """
 
-    knowledge_service = knowledge_service or KnowledgeService()
+    knowledge_service = knowledge_service or KnowledgeBaseService()
     effective_top_k = top_k or settings.KB_TOP_K
     effective_threshold = (
         similarity_threshold

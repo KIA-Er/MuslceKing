@@ -7,8 +7,14 @@ Text2SQL LangGraph pipeline implemented under ``gustobot.application.agents.text
 
 from typing import Dict, Any, Coroutine, Callable, List
 from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
-
+from muscleking.app.agents.text2sql.text2sql_workflow import create_text2sql_workflow
 from loguru import logger
+from muscleking.app.agents.cyper_tools.cypher_node import CypherQueryOutputState
+from muscleking.app.agents.text2sql.text2sql_workflow import create_text2sql_workflow
+from langchain_openai import ChatOpenAI
+from muscleking.config.settings import settings
+
+
 
 logger = logger.bind(service="text2sql")
 
@@ -53,6 +59,13 @@ def create_text2sql_tool_node(
 
         #大模型初始化
 
+        text2sql_llm = ChatOpenAI(
+            openai_api_key=settings.OPENAI_API_KEY,
+            model_name=settings.OPENAI_MODEL,
+            openai_api_base=settings.OPENAI_API_BASE,
+            temperature=0.0,
+            tags=["text2sql"],
+        )
         #workflow搭建
         workflow = create_text2sql_workflow(
             llm=text2sql_llm,
@@ -63,9 +76,34 @@ def create_text2sql_tool_node(
         )
 
         #input_state定义
-
+        input_state = {
+            "question": question,
+            "connection_id": connection_id,
+            "db_type": db_type,
+            "max_retries": max_retries,
+            "max_rows": max_rows,
+        }
         #workflow执行
+        try:
+            result: Dict[str, Any] = await workflow.ainvoke(input_state)
+        except Exception as exc:  # pragma: no cover - defensive logging
+            logger.exception("Text2SQL workflow execution failed: %s", exc)
+            error_message = f"执行数据库查询失败：{exc}"
+            errors.append(error_message)
+            answer = "抱歉，执行数据库查询时发生异常，请稍后再试。"
+            records_payload = {
+                "answer": answer,
+                "rows": [],
+                "sql": "",
+                "error": error_message,
+            }
 
+        answer = result.get("answer") or ""
+        sql_statement = result.get("sql_statement") or ""
+        execution_results = result.get("execution_results") or []
+        execution_error = result.get("execution_error")
+        visualization = result.get("visualization")
+        viz_config = result.get("visualization_config")
         #查询结果映射与payload(负载)构造
         return {
             "cyphers": [
