@@ -5,10 +5,10 @@ import asyncio
 from typing import Any, Dict, List, Optional
 from uuid import uuid4
 
-from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 
 from muscleking.config import settings
 import torch

@@ -8,7 +8,7 @@ from muscleking.app.agents.agent_state import PredefinedCypherInputState
 from muscleking.app.agents.agent_state import CypherOutputState
 from muscleking.app.agents.predefined_cypher.predefined_cypher_utils import create_vector_query_matcher
 from muscleking.app.agents.predefined_cypher.description import QUERY_DESCRIPTIONS
-from muscleking.config import settings
+from muscleking.config.settings import settings
 
 NO_CYPHER_RESULTS = [
     {"error": "I couldn't find any relevant information in the database."}
@@ -41,13 +41,13 @@ def create_predefined_cypher_node(
     matcher = create_vector_query_matcher(predefined_cypher_dict, QUERY_DESCRIPTIONS)
 
     openai_kwargs: Dict[str, Any] = {
-        "model": settings.OPENAI_MODEL,
+        "model": settings.LLM_MODEL,
         "temperature": 0,
     }
-    if settings.OPENAI_API_KEY:
-        openai_kwargs["openai_api_key"] = settings.OPENAI_API_KEY
-    if settings.OPENAI_API_BASE:
-        openai_kwargs["openai_api_base"] = settings.OPENAI_API_BASE
+    if settings.LLM_API_KEY:
+        openai_kwargs["openai_api_key"] = settings.LLM_API_KEY
+    if settings.LLM_BASE_URL:
+        openai_kwargs["openai_api_base"] = settings.LLM_BASE_URL
     chat_llm = ChatOpenAI(**openai_kwargs)
 
     async def predefined_cypher(

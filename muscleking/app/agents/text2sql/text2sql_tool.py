@@ -60,9 +60,9 @@ def create_text2sql_tool_node(
         #大模型初始化
 
         text2sql_llm = ChatOpenAI(
-            openai_api_key=settings.OPENAI_API_KEY,
-            model_name=settings.OPENAI_MODEL,
-            openai_api_base=settings.OPENAI_API_BASE,
+            api_key=settings.LLM_API_KEY,
+            model=settings.LLM_MODEL,
+            base_url=settings.LLM_BASE_URL,
             temperature=0.0,
             tags=["text2sql"],
         )
@@ -101,9 +101,18 @@ def create_text2sql_tool_node(
         answer = result.get("answer") or ""
         sql_statement = result.get("sql_statement") or ""
         execution_results = result.get("execution_results") or []
-        execution_error = result.get("execution_error")
+        execution_error = result.get("execution_error") or []
         visualization = result.get("visualization")
         viz_config = result.get("visualization_config")
+
+        records_payload = {
+            "answer": answer,
+            "rows": execution_results,
+            "sql": sql_statement,
+            "visualization": visualization,
+        }
+        if viz_config:
+            records_payload["visualization_config"] = viz_config
         #查询结果映射与payload(负载)构造
         return {
             "cyphers": [

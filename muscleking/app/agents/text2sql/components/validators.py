@@ -7,7 +7,7 @@ from typing import Any, Callable, Coroutine, Dict, List, Tuple
 from loguru import logger
 
 
-logger = logger(service="text2sql.sql_validation")
+logger = logger.bind(service="text2sql.sql_validation")
 
 
 def create_sql_validation_node(

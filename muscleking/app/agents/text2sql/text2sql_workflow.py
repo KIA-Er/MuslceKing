@@ -32,7 +32,7 @@ from .components.text2sql_node import (
 )
 from .state import Text2SQLInputState, Text2SQLState, Text2SQLOutputState
 
-logger = logger(service="text2sql.workflow")
+logger = logger.bind(service="text2sql.workflow")
 
 
 def create_text2sql_workflow(

@@ -17,7 +17,7 @@ from muscleking.app.agents.text2sql.components.prompt import COLUMN_DESCRIPTIONS
 import asyncio
 import re
 
-logger = logger(service="text2sql_node")
+logger = logger.bind(service="text2sql_node")
 
 
 def create_answer_formatter_node() -> Callable[[Dict[str, Any]], Coroutine[Any, Any, Dict[str, Any]]]:

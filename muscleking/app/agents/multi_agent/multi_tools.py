@@ -205,7 +205,7 @@ def create_multi_tool_workflow(
     return main_graph_builder.compile()
 
 
-kb_logger = logger(service="kb-multi-tool")
+kb_logger = logger.bind(service="kb-multi-tool")
 
 
 class KBGuardrailsDecision(BaseModel):

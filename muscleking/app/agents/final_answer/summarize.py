@@ -8,7 +8,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
 
 from muscleking.app.agents.agent_state import OverallState
-from muscleking.app.agents.final_answer.summarize import (
+from muscleking.app.agents.final_answer.summarization_prompt import (
     create_summarization_prompt_template,
 )
 

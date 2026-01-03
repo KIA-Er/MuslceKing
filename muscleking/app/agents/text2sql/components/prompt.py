@@ -1,4 +1,4 @@
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 COLUMN_DESCRIPTIONS: Dict[Tuple[str, str], str] = {
 

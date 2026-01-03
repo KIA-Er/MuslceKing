@@ -2,18 +2,8 @@ from langchain_neo4j import Neo4jGraph
 from muscleking.config import settings
 from loguru import logger
 
-
 # 获取日志记录器
-
 logger = logger.bind(service="neo4jconn")
-
-# 设置Neo4j驱动的日志级别为ERROR，禁止WARNING消息
-logger.getLogger("neo4j").setLevel(logger.ERROR)
-# 禁用langchain_neo4j相关日志
-logger.getLogger("langchain_neo4j").setLevel(logger.ERROR)
-# 禁用驱动相关日志
-logger.getLogger("neo4j.io").setLevel(logger.ERROR)
-logger.getLogger("neo4j.bolt").setLevel(logger.ERROR)
 
 def get_neo4j_graph() -> Neo4jGraph:
     """
