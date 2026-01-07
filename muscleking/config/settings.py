@@ -46,6 +46,16 @@ class Settings(BaseSettings):
         description="Database connection URL"
     )
 
+    # Neo4j 图数据库配置
+    NEO4J_URI: str = Field(default="bolt://localhost:7687", description="Neo4j connection URI")
+    NEO4J_USER: str = Field(default="neo4j", description="Neo4j username")
+    NEO4J_PASSWORD: str = Field(default="muscleking", description="Neo4j password")
+    NEO4J_DATABASE: str = Field(default="neo4j", description="Neo4j database name")
+    NEO4J_DEFAULT_GRAPH_QUERY: str = Field(
+        default="MATCH (a)-[r]-(b) RETURN a, r, b LIMIT 100",
+        description="Default graph query"
+    )
+
     class Config:
         env_file = ".env"   # 从.env读取配置
         case_sensitive = False  # 大小写不敏感

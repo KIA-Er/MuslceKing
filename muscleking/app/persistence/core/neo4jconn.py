@@ -1,19 +1,26 @@
 from langchain_neo4j import Neo4jGraph
-from muscleking.config import settings
 from loguru import logger
+import os
 
+# 配置 Neo4j 相关日志级别（通过环境变量）
+os.environ["NEO4J_MODULE_LOG_LEVEL"] = "ERROR"
+
+# 尝试从 settings 获取配置，如果不可用则使用默认值
+try:
+    from muscleking.config import settings
+    NEO4J_URI = getattr(settings, 'NEO4J_URI', 'bolt://localhost:7687')
+    NEO4J_USER = getattr(settings, 'NEO4J_USER', 'neo4j')
+    NEO4J_PASSWORD = getattr(settings, 'NEO4J_PASSWORD', 'muscleking')
+    NEO4J_DATABASE = getattr(settings, 'NEO4J_DATABASE', 'neo4j')
+except ImportError:
+    NEO4J_URI = 'bolt://localhost:7687'
+    NEO4J_USER = 'neo4j'
+    NEO4J_PASSWORD = 'muscleking'
+    NEO4J_DATABASE = 'neo4j'
 
 # 获取日志记录器
+log = logger.bind(service="neo4jconn")
 
-logger = logger.bind(service="neo4jconn")
-
-# 设置Neo4j驱动的日志级别为ERROR，禁止WARNING消息
-logger.getLogger("neo4j").setLevel(logger.ERROR)
-# 禁用langchain_neo4j相关日志
-logger.getLogger("langchain_neo4j").setLevel(logger.ERROR)
-# 禁用驱动相关日志
-logger.getLogger("neo4j.io").setLevel(logger.ERROR)
-logger.getLogger("neo4j.bolt").setLevel(logger.ERROR)
 
 def get_neo4j_graph() -> Neo4jGraph:
     """
@@ -22,20 +29,21 @@ def get_neo4j_graph() -> Neo4jGraph:
     Returns:
         Neo4jGraph: 配置好的Neo4j图数据库连接实例
     """
-    logger.info(f"initialize Neo4j connection: {settings.NEO4J_URI}")
+    log.info(f"initialize Neo4j connection: {NEO4J_URI}")
 
     try:
         kwargs = {
-            "url": settings.NEO4J_URI,
-            "database": settings.NEO4J_DATABASE,
+            "url": NEO4J_URI,
+            "database": NEO4J_DATABASE,
         }
-        if settings.NEO4J_USER and settings.NEO4J_PASSWORD not in (None, ""):
+        if NEO4J_USER and NEO4J_PASSWORD not in (None, ""):
             kwargs.update({
-                "username": settings.NEO4J_USER,
-                "password": settings.NEO4J_PASSWORD,
+                "username": NEO4J_USER,
+                "password": NEO4J_PASSWORD,
             })
         
         neo4j_graph = Neo4jGraph(**kwargs)
         return neo4j_graph
     except Exception as e:
+        log.error(f"Failed to connect to Neo4j: {e}")
         raise
