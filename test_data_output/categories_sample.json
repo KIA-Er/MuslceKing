@@ -1,0 +1,685 @@
+[
+  {
+    "id": 12,
+    "uuid": "53906cd1-61f1-4d56-ac60-e4fcc5824861",
+    "created": "2023-08-06T10:17:17.422900+02:00",
+    "last_update": "2025-12-11T19:47:02.959411+01:00",
+    "last_update_global": "2025-12-11T19:47:02.959411+01:00",
+    "category": {
+      "id": 9,
+      "name": "Legs"
+    },
+    "muscles": [
+      {
+        "id": 8,
+        "name": "Gluteus maximus",
+        "name_en": "Glutes",
+        "is_front": false,
+        "image_url_main": "/static/images/muscles/main/muscle-8.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-8.svg"
+      }
+    ],
+    "muscles_secondary": [],
+    "equipment": [],
+    "license": {
+      "id": 1,
+      "full_name": " Creative Commons Attribution Share Alike 3",
+      "short_name": "CC-BY-SA 3",
+      "url": "https://creativecommons.org/licenses/by-sa/3.0/deed.en"
+    },
+    "license_author": "flori",
+    "images": [
+      {
+        "id": 570,
+        "uuid": "4a42cc6f-648d-40cc-a72a-c49dd47e1667",
+        "exercise": 12,
+        "exercise_uuid": "53906cd1-61f1-4d56-ac60-e4fcc5824861",
+        "image": "https://wger.de/media/exercise-images/12/4a42cc6f-648d-40cc-a72a-c49dd47e1667.webp",
+        "is_main": true,
+        "style": "4",
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": []
+      }
+    ],
+    "translations": [
+      {
+        "id": 174,
+        "uuid": "99881bdd-43d7-4c3b-82ed-9c187d0455b7",
+        "name": "Abduktoren-Maschine",
+        "exercise": 12,
+        "description": "<ul>\n<li>in eine aufrechte Position setzen, bei der die Beine hüftbreit geöffnet sind</li>\n<li>den Rücken, die Knie und die Oberschenkelaußenseite an die jeweiligen Polster pressen</li>\n<li>mit den Händen an den Griffen festhalten</li>\n<li>die Oberschenkel bis zum Anschlagpunkt der Hebelarme auseinander drücken</li>\n<li>danach die Beine wieder zusammen führen</li>\n<li>das Gesäß nicht vom Sitz abheben</li>\n<li>beim Auseinanderdrücken der Hebelarme aus- und beim Zusammenführen einatmen</li>\n</ul>",
+        "created": "2023-08-06T10:17:17.349574+02:00",
+        "language": 1,
+        "aliases": [],
+        "notes": [],
+        "license": 1,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "flori",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "flori"
+        ]
+      },
+      {
+        "id": 2565,
+        "uuid": "431d53bf-fd32-42f3-af1d-658f3ed1219f",
+        "name": "Aducción de Cadera en Máquina",
+        "exercise": 12,
+        "description": "<p>Este es un ejercicio de aislamiento que se realiza en una máquina específica para fortalecer los músculos aductores, es decir, la musculatura de la parte interna de los muslos. Ayuda a mejorar la estabilidad de la cadera y a equilibrar la fuerza de las piernas.</p><p><b>Cómo realizarlo:</b></p><ol><li><p><b>Preparación:</b> Siéntate en la máquina con la espalda y la cadera completamente apoyadas en el respaldo. Coloca la parte interna de tus muslos o rodillas contra las almohadillas acolchadas. Ajusta la palanca de la máquina para establecer un rango de movimiento inicial que te resulte cómodo pero que genere un ligero estiramiento.</p></li><li><p><b>Ejecución:</b> Usando la fuerza de la parte interna de tus muslos, junta las piernas de manera lenta y controlada. Haz una breve pausa en el punto de máxima contracción (cuando las almohadillas casi se tocan), apretando fuertemente los aductores.</p></li><li><p><b>Regreso:</b> Vuelve a la posición inicial de forma igualmente controlada, resistiendo el peso a medida que tus piernas se separan. Evita que las placas de peso choquen bruscamente.</p></li></ol>",
+        "created": "2025-08-18T07:50:47.608177+02:00",
+        "language": 4,
+        "aliases": [],
+        "notes": [],
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "wgerjhn",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "wgerjhn"
+        ]
+      },
+      {
+        "id": 377,
+        "uuid": "4b3025a9-b717-4577-9e92-b1c200fe5f1c",
+        "name": "Seated Hip Adduction",
+        "exercise": 12,
+        "description": "Starting Position: Sit on the machine with your knees inward and against the pads. Pull the pin to release the pads. Grab the handles on the sides.",
+        "created": "2023-08-06T10:17:17.349574+02:00",
+        "language": 2,
+        "aliases": [],
+        "notes": [],
+        "license": 1,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "flori",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "Araaosf",
+          "flori"
+        ]
+      }
+    ],
+    "variations": 207,
+    "videos": [
+      {
+        "id": 74,
+        "uuid": "5148c579-5df2-4618-9a7b-a2e29ac4dd7d",
+        "exercise": 12,
+        "video": "https://wger.de/media/exercise-video/12/5148c579-5df2-4618-9a7b-a2e29ac4dd7d.MOV",
+        "is_main": false,
+        "size": 60138928,
+        "duration": "20.86",
+        "width": 1920,
+        "height": 1080,
+        "codec": "hevc",
+        "codec_long": "H.265 / HEVC (High Efficiency Video Coding)",
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "Goulart",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "Goulart"
+        ]
+      }
+    ],
+    "author_history": [
+      "flori"
+    ],
+    "total_authors_history": [
+      "Goulart",
+      "flori",
+      "wgerjhn",
+      "Araaosf"
+    ]
+  },
+  {
+    "id": 57,
+    "uuid": "b7267f90-8706-442b-b918-507e16092b8e",
+    "created": "2023-08-06T10:17:17.422900+02:00",
+    "last_update": "2025-12-22T13:33:53.578603+01:00",
+    "last_update_global": "2026-01-05T13:20:39.255659+01:00",
+    "category": {
+      "id": 11,
+      "name": "Chest"
+    },
+    "muscles": [
+      {
+        "id": 2,
+        "name": "Anterior deltoid",
+        "name_en": "Shoulders",
+        "is_front": true,
+        "image_url_main": "/static/images/muscles/main/muscle-2.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-2.svg"
+      },
+      {
+        "id": 7,
+        "name": "Gastrocnemius",
+        "name_en": "Calves",
+        "is_front": false,
+        "image_url_main": "/static/images/muscles/main/muscle-7.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-7.svg"
+      },
+      {
+        "id": 4,
+        "name": "Pectoralis major",
+        "name_en": "Chest",
+        "is_front": true,
+        "image_url_main": "/static/images/muscles/main/muscle-4.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-4.svg"
+      },
+      {
+        "id": 6,
+        "name": "Rectus abdominis",
+        "name_en": "Abs",
+        "is_front": true,
+        "image_url_main": "/static/images/muscles/main/muscle-6.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-6.svg"
+      },
+      {
+        "id": 3,
+        "name": "Serratus anterior",
+        "name_en": "",
+        "is_front": true,
+        "image_url_main": "/static/images/muscles/main/muscle-3.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-3.svg"
+      },
+      {
+        "id": 15,
+        "name": "Soleus",
+        "name_en": "",
+        "is_front": false,
+        "image_url_main": "/static/images/muscles/main/muscle-15.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-15.svg"
+      },
+      {
+        "id": 5,
+        "name": "Triceps brachii",
+        "name_en": "Triceps",
+        "is_front": false,
+        "image_url_main": "/static/images/muscles/main/muscle-5.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-5.svg"
+      }
+    ],
+    "muscles_secondary": [
+      {
+        "id": 8,
+        "name": "Gluteus maximus",
+        "name_en": "Glutes",
+        "is_front": false,
+        "image_url_main": "/static/images/muscles/main/muscle-8.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-8.svg"
+      },
+      {
+        "id": 12,
+        "name": "Latissimus dorsi",
+        "name_en": "Lats",
+        "is_front": false,
+        "image_url_main": "/static/images/muscles/main/muscle-12.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-12.svg"
+      },
+      {
+        "id": 14,
+        "name": "Obliquus externus abdominis",
+        "name_en": "",
+        "is_front": true,
+        "image_url_main": "/static/images/muscles/main/muscle-14.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-14.svg"
+      },
+      {
+        "id": 10,
+        "name": "Quadriceps femoris",
+        "name_en": "Quads",
+        "is_front": true,
+        "image_url_main": "/static/images/muscles/main/muscle-10.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-10.svg"
+      },
+      {
+        "id": 9,
+        "name": "Trapezius",
+        "name_en": "",
+        "is_front": false,
+        "image_url_main": "/static/images/muscles/main/muscle-9.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-9.svg"
+      }
+    ],
+    "equipment": [
+      {
+        "id": 7,
+        "name": "none (bodyweight exercise)"
+      }
+    ],
+    "license": {
+      "id": 2,
+      "full_name": "Creative Commons Attribution Share Alike 4",
+      "short_name": "CC-BY-SA 4",
+      "url": "https://creativecommons.org/licenses/by-sa/4.0/deed.en"
+    },
+    "license_author": "nate303303",
+    "images": [],
+    "translations": [
+      {
+        "id": 718,
+        "uuid": "e4b3da5b-1803-42af-a50e-ffbac3853cd0",
+        "name": "Bear Walk",
+        "exercise": 57,
+        "description": "<p>-Stützen Sie Ihr Gewicht auf Ihren Handflächen und Ihren Füßen, nicht anders als in der normalen Liegestützposition</p>\n<p> </p>\n<p>- Bewegen Sie sich, indem Sie mit der R-Handfläche und dem L-Fuß, dann mit der L-Handfläche und dem R-Fuß treten. Gehen Sie im Grunde wie ein trampelnder Bär.</p>\n<p> </p>\n<p>-Bewegen Sie sich so schnell wie möglich. Messen Sie Ihre Wiederholungen / Sätze entweder in der Entfernung (d. H. 40 Meter) oder in der Zeit (d. H. 45 Sekunden).</p>\n<p> </p>\n<p>-Arbeitet an Pecs, Deltamuskeln, Trizeps, Trapezius, Lats, Abs und Lendenwirbelsäule, Hüftbeugern, Quads, Gesäßmuskeln und Waden</p>",
+        "created": "2023-08-06T10:17:17.349574+02:00",
+        "language": 1,
+        "aliases": [],
+        "notes": [],
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "nate303303",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "Wunschcoach",
+          "nate303303"
+        ]
+      },
+      {
+        "id": 307,
+        "uuid": "1b8b1657-40fd-4e3b-97b7-1c79b1079f8e",
+        "name": "Bear Walk 2",
+        "exercise": 57,
+        "description": "<p></p><p>-Rest your weight on your palms and the balls of your feet, not dissimilar to normal pushup position</p>\n<p>-Move by stepping with your R palm and L foot, then your L palm and R foot.&nbsp; Basically, walk like a lumbering bear.</p>\n<p>-Move as fast as you can.&nbsp; Measure your reps/sets in either distance (i.e. 40 yards) or time (i.e. 45 seconds)</p>\n<p>-Works your Pecs, Deltoids, Triceps, Traps, Lats, Abs and Lower Back, Hip Flexors, Quads, Glutes and Calves</p>",
+        "created": "2023-08-06T10:17:17.349574+02:00",
+        "language": 2,
+        "aliases": [],
+        "notes": [],
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "nate303303",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "nate303303"
+        ]
+      },
+      {
+        "id": 2570,
+        "uuid": "e60e39f6-09fa-41b8-8975-2d4c83d8dfec",
+        "name": "Caminata del Oso",
+        "exercise": 57,
+        "description": "<p><b>Instrucciones:</b></p><ul><li><p><b>Posición Inicial:</b> Colócate en cuatro apoyos (manos y pies) con las manos directamente debajo de los hombros y las rodillas debajo de las caderas. Desde ahí, levanta las rodillas del suelo unos pocos centímetros, manteniendo la espalda recta y el core activado. El peso debe estar sobre las palmas de las manos y las puntas de los pies.</p></li><li><p><b>Movimiento:</b> Para avanzar, da un paso simultáneo con tu mano derecha y tu pie izquierdo, seguido inmediatamente por un paso con tu mano izquierda y tu pie derecho. La clave es este movimiento contralateral, como un oso caminando.</p></li><li><p><b>Intensidad y Medición:</b> Muévete tan rápido como puedas manteniendo una buena forma. Las series se miden normalmente por distancia (ej: avanzar 20 o 30 metros) o por tiempo (ej: 45 segundos continuos).</p></li><li><p><b>Músculos Trabajados:</b> Es un ejercicio muy completo que involucra: pectorales, deltoides, tríceps, trapecios, dorsales, abdominales y espalda baja (core), flexores de cadera, cuádriceps, glúteos y pantorrillas.</p></li></ul>",
+        "created": "2025-08-18T08:15:26.121296+02:00",
+        "language": 4,
+        "aliases": [],
+        "notes": [],
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "wgerjhn",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "wgerjhn"
+        ]
+      }
+    ],
+    "variations": 204,
+    "videos": [],
+    "author_history": [
+      "nate303303"
+    ],
+    "total_authors_history": [
+      "Wunschcoach",
+      "nate303303",
+      "wgerjhn"
+    ]
+  },
+  {
+    "id": 822,
+    "uuid": "5d244235-cd56-472a-876e-6e530a899ef2",
+    "created": "2023-08-06T10:17:17.422900+02:00",
+    "last_update": "2026-01-05T19:40:26.063425+01:00",
+    "last_update_global": "2026-01-05T19:40:26.063425+01:00",
+    "category": {
+      "id": 13,
+      "name": "Shoulders"
+    },
+    "muscles": [
+      {
+        "id": 2,
+        "name": "Anterior deltoid",
+        "name_en": "Shoulders",
+        "is_front": true,
+        "image_url_main": "/static/images/muscles/main/muscle-2.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-2.svg"
+      },
+      {
+        "id": 9,
+        "name": "Trapezius",
+        "name_en": "",
+        "is_front": false,
+        "image_url_main": "/static/images/muscles/main/muscle-9.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-9.svg"
+      }
+    ],
+    "muscles_secondary": [
+      {
+        "id": 5,
+        "name": "Triceps brachii",
+        "name_en": "Triceps",
+        "is_front": false,
+        "image_url_main": "/static/images/muscles/main/muscle-5.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-5.svg"
+      }
+    ],
+    "equipment": [],
+    "license": {
+      "id": 2,
+      "full_name": "Creative Commons Attribution Share Alike 4",
+      "short_name": "CC-BY-SA 4",
+      "url": "https://creativecommons.org/licenses/by-sa/4.0/deed.en"
+    },
+    "license_author": "cshep442",
+    "images": [
+      {
+        "id": 216,
+        "uuid": "74affc0d-03b6-4f33-b5f4-a822a2615f68",
+        "exercise": 822,
+        "exercise_uuid": "5d244235-cd56-472a-876e-6e530a899ef2",
+        "image": "https://wger.de/media/exercise-images/822/74affc0d-03b6-4f33-b5f4-a822a2615f68.png",
+        "is_main": true,
+        "style": "4",
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "cshep442",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "cshep442"
+        ]
+      },
+      {
+        "id": 217,
+        "uuid": "6a770e5d-cd62-4754-a18c-eebe2103d7c5",
+        "exercise": 822,
+        "exercise_uuid": "5d244235-cd56-472a-876e-6e530a899ef2",
+        "image": "https://wger.de/media/exercise-images/822/6a770e5d-cd62-4754-a18c-eebe2103d7c5.png",
+        "is_main": false,
+        "style": "4",
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "cshep442",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "cshep442"
+        ]
+      }
+    ],
+    "translations": [
+      {
+        "id": 2553,
+        "uuid": "29ed39c3-e79b-49ea-bf3e-52e2ef248d52",
+        "name": "Aperturas Posteriores en Polea",
+        "exercise": 822,
+        "description": "<p>Ajusta el peso y sitúa las poleas en una posición alta, por encima de tu cabeza. Con la mano derecha, agarra el mango de la polea izquierda, y con la mano izquierda, el de la polea derecha, cruzando los cables frente a ti. Esta es tu posición de inicio.</p><p>Comienza el movimiento abriendo los brazos hacia los lados y hacia atrás en un arco amplio, manteniendo una ligera flexión en los codos. Haz una breve pausa al final del movimiento para contraer al máximo los músculos de la espalda, antes de regresar los mangos a la posición inicial de forma controlada.</p>",
+        "created": "2025-08-18T06:52:18.311429+02:00",
+        "language": 4,
+        "aliases": [],
+        "notes": [],
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "wgerjhn",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "wgerjhn"
+        ]
+      },
+      {
+        "id": 1078,
+        "uuid": "e99166c7-caf9-44fc-a8b0-9249a2ebb6b5",
+        "name": "Cable Rear Delt Fly",
+        "exercise": 822,
+        "description": "<p style=\"\">The reverse cable fly, also known as the cable rear delt fly, is a deltoid muscle strengthening and definition exercise. It’s one of the best isolation exercises for your back and posterior deltoid.This workout targets your posterior (back) deltoids while using a range of upper body muscles.</p><p style=\"\"></p><ol><li>Adjust the weight and the pulleys to the right height. You should be able to see the pulleys because they should be above your head.</li><li>With your right hand, grab the left pulley, and with your left hand, grab the right pulley, crossing them in front of you. This is where you’ll begin your journey.</li><li>Start the movement by moving your arms back and forth while keeping your arms straight.</li><li>Pause at the finish of the move for a brief moment before returning the handles to their starting positions.</li></ol><p></p>",
+        "created": "2023-08-06T10:17:17.349574+02:00",
+        "language": 2,
+        "aliases": [],
+        "notes": [],
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "cshep442",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "cshep442"
+        ]
+      }
+    ],
+    "variations": 209,
+    "videos": [],
+    "author_history": [
+      "cshep442"
+    ],
+    "total_authors_history": [
+      "wgerjhn",
+      "cshep442"
+    ]
+  },
+  {
+    "id": 31,
+    "uuid": "f2733700-aa5d-4df7-bc52-1876ab4fb479",
+    "created": "2023-08-06T10:17:17.422900+02:00",
+    "last_update": "2024-01-17T11:21:01.706493+01:00",
+    "last_update_global": "2025-08-18T06:38:22.678835+02:00",
+    "category": {
+      "id": 8,
+      "name": "Arms"
+    },
+    "muscles": [],
+    "muscles_secondary": [],
+    "equipment": [
+      {
+        "id": 3,
+        "name": "Dumbbell"
+      }
+    ],
+    "license": {
+      "id": 1,
+      "full_name": " Creative Commons Attribution Share Alike 3",
+      "short_name": "CC-BY-SA 3",
+      "url": "https://creativecommons.org/licenses/by-sa/3.0/deed.en"
+    },
+    "license_author": "GrosseHund",
+    "images": [],
+    "translations": [
+      {
+        "id": 289,
+        "uuid": "6add5973-86d0-4543-928a-6bb8b3f34efc",
+        "name": "Axe Hold",
+        "exercise": 31,
+        "description": "<p>Grab dumbbells and extend arms to side and hold as long as you can</p>",
+        "created": "2023-08-06T10:17:17.349574+02:00",
+        "language": 2,
+        "aliases": [],
+        "notes": [],
+        "license": 1,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "GrosseHund",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "GrosseHund"
+        ]
+      },
+      {
+        "id": 677,
+        "uuid": "8e9d8968-323d-468c-9174-8cf11a105fad",
+        "name": "Axe Hold",
+        "exercise": 31,
+        "description": "<p>Nehmen Sie die Hanteln und strecken Sie die Arme zur Seite. Halten Sie sie so lange wie möglich.</p>",
+        "created": "2023-08-06T10:17:17.349574+02:00",
+        "language": 1,
+        "aliases": [],
+        "notes": [],
+        "license": 1,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "GrosseHund",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "Wunschcoach",
+          "GrosseHund"
+        ]
+      },
+      {
+        "id": 2549,
+        "uuid": "c76fcf70-2c8c-48ce-854d-1f53568c61cc",
+        "name": "Sostenimiento Lateral Isométrico",
+        "exercise": 31,
+        "description": "Toma un par de mancuernas, extiende los brazos hacia los lados y mantén la posición el mayor tiempo que puedas.",
+        "created": "2025-08-18T06:38:22.678816+02:00",
+        "language": 4,
+        "aliases": [],
+        "notes": [],
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "wgerjhn",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "wgerjhn"
+        ]
+      }
+    ],
+    "variations": null,
+    "videos": [],
+    "author_history": [
+      "GrosseHund"
+    ],
+    "total_authors_history": [
+      "Wunschcoach",
+      "wgerjhn",
+      "GrosseHund"
+    ]
+  },
+  {
+    "id": 805,
+    "uuid": "ea63d85c-8579-4dda-b99f-c4c8930f9af6",
+    "created": "2023-08-06T10:17:17.422900+02:00",
+    "last_update": "2024-01-17T11:21:03.018786+01:00",
+    "last_update_global": "2024-04-04T15:15:18.085757+02:00",
+    "category": {
+      "id": 8,
+      "name": "Arms"
+    },
+    "muscles": [
+      {
+        "id": 5,
+        "name": "Triceps brachii",
+        "name_en": "Triceps",
+        "is_front": false,
+        "image_url_main": "/static/images/muscles/main/muscle-5.svg",
+        "image_url_secondary": "/static/images/muscles/secondary/muscle-5.svg"
+      }
+    ],
+    "muscles_secondary": [],
+    "equipment": [],
+    "license": {
+      "id": 2,
+      "full_name": "Creative Commons Attribution Share Alike 4",
+      "short_name": "CC-BY-SA 4",
+      "url": "https://creativecommons.org/licenses/by-sa/4.0/deed.en"
+    },
+    "license_author": "cshep442",
+    "images": [],
+    "translations": [
+      {
+        "id": 2081,
+        "uuid": "7460a7bc-4490-46aa-a4bb-883ab22ef171",
+        "name": "Empuje de tríceps en cable",
+        "exercise": 805,
+        "description": "El empuje hacia abajo de la cuerda del cable es un ejercicio popular dirigido a los músculos tríceps. Es fácil de aprender y realizar, lo que lo convierte en el favorito de todos, desde principiantes hasta levantadores avanzados. Por lo general, se realiza para repeticiones de moderadas a altas, como 8-12 repeticiones o más por serie, como parte de un entrenamiento centrado en la parte superior del cuerpo o en los brazos.",
+        "created": "2023-08-06T10:17:17.349574+02:00",
+        "language": 4,
+        "aliases": [],
+        "notes": [],
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "cshep442",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "cshep442",
+          "Franpol"
+        ]
+      },
+      {
+        "id": 2225,
+        "uuid": "37eaf7ae-772d-4d34-ad95-6b727432c371",
+        "name": "Flessioni dei Tricipiti al Cavo",
+        "exercise": 805,
+        "description": "Il push-down con la corda è un esercizio molto popolare per i tricipiti. È facile da imparare e da eseguire, per cui è il preferito da tutti, dai sollevatori principianti agli esperti. Di solito viene eseguito con ripetizioni moderate o elevate, come 8-12 ripetizioni o più per serie, parte di un allenamento per la parte superiore del corpo o incentrato per le braccia.",
+        "created": "2024-04-03T16:22:49.679122+02:00",
+        "language": 13,
+        "aliases": [],
+        "notes": [],
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "FEFFO",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "FEFFO"
+        ]
+      },
+      {
+        "id": 1073,
+        "uuid": "51595d74-afe2-4445-88ec-2a289251e710",
+        "name": "Tricep Pushdown on Cable",
+        "exercise": 805,
+        "description": "The cable rope push-down is a popular exercise targeting the triceps muscles. It's easy to learn and perform, making it a favorite for everyone from beginners to advanced lifters. It is usually performed for moderate to high reps, such as 8-12 reps or more per set, as part of an upper-body or arm-focused workout.",
+        "created": "2023-08-06T10:17:17.349574+02:00",
+        "language": 2,
+        "aliases": [],
+        "notes": [],
+        "license": 2,
+        "license_title": "",
+        "license_object_url": "",
+        "license_author": "cshep442",
+        "license_author_url": "",
+        "license_derivative_source_url": "",
+        "author_history": [
+          "cshep442"
+        ]
+      }
+    ],
+    "variations": null,
+    "videos": [],
+    "author_history": [
+      "cshep442"
+    ],
+    "total_authors_history": [
+      "FEFFO",
+      "cshep442",
+      "Franpol"
+    ]
+  }
+]
