@@ -15,7 +15,9 @@ from kb_service.services.utils import compute_content_hash
 class VectorStoreWriter:
     """实现向量嵌入并存储到 pgvector 数据库."""
 
-    def __init__(self, config: Config, embedding_client: Optional[EmbeddingClient] = None):
+    def __init__(
+        self, config: Config, embedding_client: Optional[EmbeddingClient] = None
+    ):
         self.config = config
         self.embedding_client = embedding_client or EmbeddingClient(config)
         self.logger = logging.getLogger(__name__)
@@ -24,7 +26,7 @@ class VectorStoreWriter:
         self,
         items: Iterable[dict],
         logger: Optional[logging.Logger] = None,
-        incremental: bool = False
+        incremental: bool = False,
     ) -> int:
         """批量插入或更新向量数据(核心方法)
         实现了向量嵌入和存储到 pgvector 数据库的功能"""
@@ -56,12 +58,12 @@ class VectorStoreWriter:
         register_vector(conn)
         # 确保数据库表结构正确
         self._ensure_table(conn, vector_dim, log)
-       
+
         batch_size = 32
         total = 0
         # 批量处理数据
         for start in range(0, len(items), batch_size):
-            batch = items[start:start + batch_size]
+            batch = items[start : start + batch_size]
             texts = [item.get("rewritten_content") or "" for item in batch]
             embeddings = self.embedding_client.embed_texts(texts)
 
@@ -164,7 +166,9 @@ class VectorStoreWriter:
             return
 
         for col in text_cols:
-            cur.execute(f"ALTER TABLE searchable_documents ADD COLUMN IF NOT EXISTS {col} TEXT;")
+            cur.execute(
+                f"ALTER TABLE searchable_documents ADD COLUMN IF NOT EXISTS {col} TEXT;"
+            )
 
         cur.execute(
             """
@@ -184,7 +188,9 @@ class VectorStoreWriter:
             ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
             """
         )
-        cur.execute(f"ALTER TABLE searchable_documents ADD COLUMN IF NOT EXISTS embedding vector({vector_dim});")
+        cur.execute(
+            f"ALTER TABLE searchable_documents ADD COLUMN IF NOT EXISTS embedding vector({vector_dim});"
+        )
         conn.commit()
 
         cur.execute(
@@ -210,12 +216,18 @@ class VectorStoreWriter:
         table_dim = int(row[0])
 
         if table_dim != vector_dim:
-            log.warning("检测到表向量维度=%s 与 模型维度=%s 不一致，准备处理...", table_dim, vector_dim)
+            log.warning(
+                "检测到表向量维度=%s 与 模型维度=%s 不一致，准备处理...",
+                table_dim,
+                vector_dim,
+            )
             cur.execute("SELECT COUNT(*) FROM searchable_documents;")
             rowcount = cur.fetchone()[0]
             if rowcount == 0:
                 log.info("表为空，将自动调整 embedding 列维度以匹配模型。")
-                cur.execute(f"ALTER TABLE searchable_documents ALTER COLUMN embedding TYPE vector({vector_dim});")
+                cur.execute(
+                    f"ALTER TABLE searchable_documents ALTER COLUMN embedding TYPE vector({vector_dim});"
+                )
                 conn.commit()
             else:
                 raise RuntimeError(
@@ -249,11 +261,17 @@ class VectorStoreWriter:
         """将嵌入向量转换为浮点数列表"""
         if hasattr(embedding, "tolist"):
             embedding = embedding.tolist()
-        if isinstance(embedding, (list, tuple)) and embedding and isinstance(embedding[0], (list, tuple)):
+        if (
+            isinstance(embedding, (list, tuple))
+            and embedding
+            and isinstance(embedding[0], (list, tuple))
+        ):
             embedding = [x for row in embedding for x in row]
         return [float(x) for x in embedding]
 
-    def _filter_changed_items(self, items: List[dict], log: logging.Logger) -> List[dict]:
+    def _filter_changed_items(
+        self, items: List[dict], log: logging.Logger
+    ) -> List[dict]:
         """
         过滤出内容发生变化的数据项
 
@@ -273,7 +291,9 @@ class VectorStoreWriter:
 
         try:
             # 构建查询条件
-            conditions = [(item.get("source_table"), item.get("source_id")) for item in items]
+            conditions = [
+                (item.get("source_table"), item.get("source_id")) for item in items
+            ]
 
             # 批量查询
             query = """
@@ -282,9 +302,7 @@ class VectorStoreWriter:
                 WHERE (source_table, source_id) IN %s
             """
             cur.execute(query, (tuple(conditions),))
-            existing_hashes = {
-                (row[0], row[1]): row[2] for row in cur.fetchall()
-            }
+            existing_hashes = {(row[0], row[1]): row[2] for row in cur.fetchall()}
 
             log.info("从数据库查询到 %s 条现有记录的哈希", len(existing_hashes))
 
@@ -314,14 +332,20 @@ class VectorStoreWriter:
             elif existing_hash != new_hash:
                 # 内容变化
                 changed_items.append(item)
-                log.debug("内容变化: %s/%s (旧哈希: %s, 新哈希: %s)",
-                         source_table, source_id, existing_hash[:8], new_hash[:8])
+                log.debug(
+                    "内容变化: %s/%s (旧哈希: %s, 新哈希: %s)",
+                    source_table,
+                    source_id,
+                    existing_hash[:8],
+                    new_hash[:8],
+                )
             else:
                 # 内容未变化，跳过
                 skipped_count += 1
                 log.debug("跳过未变化: %s/%s", source_table, source_id)
 
-        log.info("增量检测结果: 需更新 %s 条, 跳过 %s 条",
-                len(changed_items), skipped_count)
+        log.info(
+            "增量检测结果: 需更新 %s 条, 跳过 %s 条", len(changed_items), skipped_count
+        )
 
         return changed_items

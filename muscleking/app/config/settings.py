@@ -2,14 +2,13 @@
 MuscleKing 配置管理模块.
 """
 
-from typing import List, Optional, Tuple
-import os
-from pathlib import Path
+from typing import List, Optional
 from pydantic import Field
 from pydantic.v1 import BaseSettings
 from dotenv import find_dotenv, load_dotenv
 
 load_dotenv(find_dotenv())
+
 
 class Settings(BaseSettings):
     """应用配置"""
@@ -20,7 +19,9 @@ class Settings(BaseSettings):
     DEBUG: bool = True
 
     # API configuration
-    API_V1_PREFIX: str = Field(default="/api/v1",)
+    API_V1_PREFIX: str = Field(
+        default="/api/v1",
+    )
     HOST: str = "0.0.0.0"
     PORT: int = 8000
 
@@ -29,7 +30,7 @@ class Settings(BaseSettings):
     LLM_MODEL: str = Field(default="gpt-4o-mini", description="LLM model name")
     LLM_API_KEY: Optional[str] = Field(default=None, description="LLM_API_KEY")
     LLM_BASE_URL: Optional[str] = Field(default=None, description="LLM API base URL")
-    
+
     # 兼容性配置 - 为了兼容lg_builder.py中的配置名称
     # 这些字段在__init__中动态设置
 
@@ -55,12 +56,12 @@ class Settings(BaseSettings):
     #     default="MATCH (a)-[r]-(b) RETURN a, r, b LIMIT 100",
     #     description="Default graph query"
     # )
-    
+
     # OpenAI compatibility fields
     OPENAI_API_KEY: Optional[str] = None
     OPENAI_API_BASE: Optional[str] = None
     OPENAI_MODEL: str = "gpt-4o-mini"
-    
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # 设置兼容性字段
@@ -73,7 +74,7 @@ class Settings(BaseSettings):
         if isinstance(self.CORS_ORIGINS, str):
             return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
         return list(self.CORS_ORIGINS)
-    
+
     # Knowledge base retrieval
     # KB_TOP_K: int = 5
     # KB_SIMILARITY_THRESHOLD: float = 0.2
@@ -85,7 +86,7 @@ class Settings(BaseSettings):
     #     default=80,
     #     description="Chunk overlap used when splitting documents",
     # )
-    
+
     # MILVUS_HOST: str = "localhost"
     # MILVUS_PORT: int = 19530
     # MILVUS_COLLECTION: str = "fitness"
@@ -115,5 +116,6 @@ class Settings(BaseSettings):
     #     default=0.8,
     #     description="Minimum rerank score required for vector results (e.g., Milvus)",
     # )
+
 
 settings = Settings()

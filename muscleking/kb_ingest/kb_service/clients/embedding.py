@@ -31,16 +31,24 @@ class EmbeddingClient:
     def _setup_client(self) -> None:
         if self.provider == EmbeddingProvider.OPENAI:
             api_key = self.config.embedding_api_key or os.getenv("OPENAI_API_KEY")
-            self.openai_client = OpenAI(api_key=api_key, base_url=self.config.embedding_base_url)
+            self.openai_client = OpenAI(
+                api_key=api_key, base_url=self.config.embedding_base_url
+            )
             model_dimensions = {
                 "text-embedding-3-small": 1536,
                 "text-embedding-3-large": 3072,
                 "text-embedding-ada-002": 1536,
             }
-            self.dimension = model_dimensions.get(self.config.embedding_model, self.dimension)
+            self.dimension = model_dimensions.get(
+                self.config.embedding_model, self.dimension
+            )
 
         elif self.provider == EmbeddingProvider.OLLAMA:
-            base = self.config.embedding_base_url or self.config.llm_base_url or "http://localhost:11434"
+            base = (
+                self.config.embedding_base_url
+                or self.config.llm_base_url
+                or "http://localhost:11434"
+            )
             self.ollama_url = f"{base.rstrip('/')}/api/embeddings"
 
     def embed_texts(self, texts: List[str]) -> np.ndarray:
@@ -57,7 +65,7 @@ class EmbeddingClient:
         max_batch_size = 100
         all_embeddings: List[List[float]] = []
         for start in range(0, len(texts), max_batch_size):
-            batch = texts[start:start + max_batch_size]
+            batch = texts[start : start + max_batch_size]
             response = self.openai_client.embeddings.create(
                 model=self.config.embedding_model,
                 input=batch,

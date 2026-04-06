@@ -5,7 +5,16 @@ import tempfile
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    status,
+    UploadFile,
+    File,
+    Form,
+)
 
 from kb_service.api.deps import get_config
 from kb_service.core.config import Config, clone_config
@@ -25,7 +34,11 @@ router = APIRouter()
     status_code=status.HTTP_202_ACCEPTED,
     summary="处理本地 Excel 文件并生成向量嵌入到 pgvector 数据库",
 )
-def ingest_excel(payload: ExcelIngestRequest, background: BackgroundTasks, config: Config = Depends(get_config)):
+def ingest_excel(
+    payload: ExcelIngestRequest,
+    background: BackgroundTasks,
+    config: Config = Depends(get_config),
+):
     """
     处理本地 Excel 文件：
     - 读取指定路径的 Excel 文件
@@ -34,7 +47,9 @@ def ingest_excel(payload: ExcelIngestRequest, background: BackgroundTasks, confi
     """
     excel_path = Path(payload.excel_path)
     if not excel_path.exists():
-        raise HTTPException(status_code=404, detail=f"Excel file not found: {excel_path}")
+        raise HTTPException(
+            status_code=404, detail=f"Excel file not found: {excel_path}"
+        )
 
     def run_ingest() -> None:
         try:
@@ -44,6 +59,7 @@ def ingest_excel(payload: ExcelIngestRequest, background: BackgroundTasks, confi
             processor.process_excel()
         except Exception:  # pragma: no cover - background task logging
             logger.exception("Excel ingest failed for %s", excel_path)
+
     # 后台任务执行
     background.add_task(run_ingest)
     mode = "增量" if payload.incremental else "全量"
@@ -51,7 +67,7 @@ def ingest_excel(payload: ExcelIngestRequest, background: BackgroundTasks, confi
     return {
         "message": "ingest started",
         "path": str(excel_path),
-        "mode": "incremental" if payload.incremental else "full"
+        "mode": "incremental" if payload.incremental else "full",
     }
 
 
@@ -64,7 +80,7 @@ async def upload_and_ingest_excel(
     file: UploadFile = File(..., description="Excel file to upload"),
     incremental: bool = Form(False, description="Whether to use incremental mode"),
     background: BackgroundTasks = None,
-    config: Config = Depends(get_config)
+    config: Config = Depends(get_config),
 ):
     """
     上传 Excel 文件并处理：
@@ -73,11 +89,8 @@ async def upload_and_ingest_excel(
     - 处理完成后自动清理临时文件
     """
     # 验证文件类型
-    if not file.filename.endswith(('.xlsx', '.xls')):
-        raise HTTPException(
-            status_code=400,
-            detail="只支持 Excel 文件 (.xlsx, .xls)"
-        )
+    if not file.filename.endswith((".xlsx", ".xls")):
+        raise HTTPException(status_code=400, detail="只支持 Excel 文件 (.xlsx, .xls)")
 
     # 创建临时目录保存上传的文件
     temp_dir = tempfile.mkdtemp()
@@ -107,6 +120,7 @@ async def upload_and_ingest_excel(
                     logger.info("临时文件已清理: %s", temp_dir)
                 except Exception:
                     logger.exception("清理临时文件失败: %s", temp_dir)
+
         # 添加后台任务
         background.add_task(run_ingest)
         mode = "增量" if incremental else "全量"
@@ -116,7 +130,7 @@ async def upload_and_ingest_excel(
             "message": "文件上传成功，处理已开始",
             "filename": file.filename,
             "mode": "incremental" if incremental else "full",
-            "size_bytes": temp_file_path.stat().st_size
+            "size_bytes": temp_file_path.stat().st_size,
         }
 
     except Exception as e:
@@ -152,7 +166,8 @@ def ingest_mysql(
             ingestor = MySQLIngestor(local_config)
             ingestor.ingest(MySQLIngestRequest(**payload_data))
         except Exception:  # pragma: no cover - background task logging
-            logger.exception("MySQL ingest failed for %s", payload_data.get('table'))
+            logger.exception("MySQL ingest failed for %s", payload_data.get("table"))
+
     # 后台任务执行
     background.add_task(run_ingest)
     logger.info("MySQL ingest queued for %s", payload.table)

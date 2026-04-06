@@ -38,7 +38,10 @@ class LLMClient:
                 base_url = self.config.llm_base_url
             else:
                 api_key = api_key or "EMPTY"
-                base_url = self.config.llm_base_url or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+                base_url = (
+                    self.config.llm_base_url
+                    or "https://dashscope.aliyuncs.com/compatible-mode/v1"
+                )
 
             self.openai_client = OpenAI(api_key=api_key, base_url=base_url)
 
@@ -64,10 +67,16 @@ class LLMClient:
     def _generate_openai(self, prompt: str, system_prompt: str) -> str:
         completion = self.openai_client.chat.completions.create(
             model=self.config.llm_model,
-            messages=[m for m in [
-                {"role": "system", "content": system_prompt} if system_prompt else None,
-                {"role": "user", "content": prompt},
-            ] if m],
+            messages=[
+                m
+                for m in [
+                    {"role": "system", "content": system_prompt}
+                    if system_prompt
+                    else None,
+                    {"role": "user", "content": prompt},
+                ]
+                if m
+            ],
             temperature=self.config.llm_temperature,
         )
         return completion.choices[0].message.content.strip()
@@ -91,10 +100,16 @@ class LLMClient:
         }
         data = {
             "model": self.config.llm_model,
-            "messages": [m for m in [
-                {"role": "system", "content": system_prompt} if system_prompt else None,
-                {"role": "user", "content": prompt},
-            ] if m],
+            "messages": [
+                m
+                for m in [
+                    {"role": "system", "content": system_prompt}
+                    if system_prompt
+                    else None,
+                    {"role": "user", "content": prompt},
+                ]
+                if m
+            ],
             "temperature": self.config.llm_temperature,
         }
         resp = requests.post(

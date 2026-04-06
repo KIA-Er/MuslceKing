@@ -1,21 +1,27 @@
 """
 知识库工作流
 """
-from typing import Any, Dict, List, Optional, Literal
+
+from typing import Any, Dict, List, Optional
 from muscleking.app.services.knowledge_base_service import KnowledgeBaseService
 from langchain_core.language_models import BaseChatModel
-from langchain_neo4j import Neo4jGraph
 from langgraph.constants import END, START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
-from pydantic import BaseModel, Field
 from langchain_core.prompts import ChatPromptTemplate
 from muscleking.config import settings
 from loguru import logger
-from muscleking.app.agents.models.kb_state import KBGuardrailsDecision, KBRouteDecision, KBInputState, KBWorkflowState, KBOutputState
+from muscleking.app.agents.models.kb_state import (
+    KBGuardrailsDecision,
+    KBRouteDecision,
+    KBInputState,
+    KBWorkflowState,
+    KBOutputState,
+)
 import aiohttp
 
 
 kb_logger = logger.bind(service="kb-workflow")
+
 
 def create_kb_multi_tool_workflow(
     llm: BaseChatModel,
@@ -57,11 +63,10 @@ def create_kb_multi_tool_workflow(
         else settings.KB_SIMILARITY_THRESHOLD
     )
     # 外部搜索URL,目前没有配置
-    external_url = external_search_url or settings.KB_EXTERNAL_SEARCH_URL 
+    external_url = external_search_url or settings.KB_EXTERNAL_SEARCH_URL
     # 外部搜索是否允许
     allow_external_search = (
-        allow_external 
-        if allow_external else settings.KB_ENABLE_EXTERNAL_SEARCH
+        allow_external if allow_external else settings.KB_ENABLE_EXTERNAL_SEARCH
     )
     # 外部搜索URL,如果外部搜索允许但未配置URL,则关闭外部搜索
     if allow_external_search and not external_url:
@@ -74,8 +79,9 @@ def create_kb_multi_tool_workflow(
         external_url = None
     # postgreSQL搜索URL
     postgres_search_url = (
-        f"{settings.INGEST_SERVICE_URL.rstrip("/")}/api/v1/knowledge/search" 
-        if settings.INGEST_SERVICE_URL else None
+        f"{settings.INGEST_SERVICE_URL.rstrip('/')}/api/v1/knowledge/search"
+        if settings.INGEST_SERVICE_URL
+        else None
     )
     # 外部搜索是否为 PostgreSQL 搜索
     external_is_postgres = bool(
@@ -118,7 +124,9 @@ def create_kb_multi_tool_workflow(
             ("human", "用户问题：{question}"),
         ]
     )
-    guardrails_chain = guardrails_prompt | llm.with_structured_output(KBGuardrailsDecision)
+    guardrails_chain = guardrails_prompt | llm.with_structured_output(
+        KBGuardrailsDecision
+    )
 
     router_prompt = ChatPromptTemplate.from_messages(
         [
@@ -136,7 +144,7 @@ def create_kb_multi_tool_workflow(
                     "  - 执行策略：系统会**先查 postgres**，如果有结果就直接使用，**不会查询 milvus**\n"
                     "- **milvus**（Milvus向量库）：**仅作为兜底**，存放长文本、文章等非结构化内容\n"
                     "  - 只有在 postgres 无结果时才会查询\n"
-                    "  - 典型问题：\"力量训练与有氧训练对能量系统的长期影响\"、\"肌肥大的完整生理机制详解\"\n\n"
+                    '  - 典型问题："力量训练与有氧训练对能量系统的长期影响"、"肌肥大的完整生理机制详解"\n\n'
                     "## 路由决策规则（严格执行：postgres 优先）\n"
                     "请根据问题特征选择合适的路由和工具：\n\n"
                     "**1. 通用健身/运动科学科普（默认推荐）**\n"
@@ -199,7 +207,7 @@ def create_kb_multi_tool_workflow(
 
     async def guardrails(state: KBWorkflowState) -> Dict[str, Any]:
         """Guardrails 检查用户问题是否与知识库内容相关"""
-        question = state.get("question","")
+        question = state.get("question", "")
         decision = await guardrails_chain.ainvoke({"question": question})
         summary = decision.summary or (
             "抱歉，该问题不在健身知识库的支持范围内"
@@ -221,12 +229,12 @@ def create_kb_multi_tool_workflow(
         """将对话历史转换为文本格式"""
         if not history:
             return ""
-        history_list : List[str] = []
+        history_list: List[str] = []
         for item in history[-limit:]:
             role = item["role"]
             content = item["content"]
             history_list.append(f"{role}:{content}")
-        return '\n'.join(history_list)
+        return "\n".join(history_list)
 
     async def router(state: KBWorkflowState) -> Dict[str, Any]:
         """路由用户问题到合适的处理模块"""
@@ -247,11 +255,15 @@ def create_kb_multi_tool_workflow(
                 route,
             )
             route = "local"
-        tools = [tool for tool in decision.tools or [] if tool in {"milvus", "postgres"}]
-         # 如果路由为外部路由，且没有可用的工具，则默认使用 postgres + milvus 兜底策略
+        tools = [
+            tool for tool in decision.tools or [] if tool in {"milvus", "postgres"}
+        ]
+        # 如果路由为外部路由，且没有可用的工具，则默认使用 postgres + milvus 兜底策略
         if route != "external" and not tools:
             tools = ["postgres", "milvus"]
-            kb_logger.info("Router 未指定工具，使用默认策略: postgres 优先 + milvus 兜底")
+            kb_logger.info(
+                "Router 未指定工具，使用默认策略: postgres 优先 + milvus 兜底"
+            )
         kb_logger.info(
             "KB router decision: {} tools={} ({})",
             route,
@@ -263,7 +275,7 @@ def create_kb_multi_tool_workflow(
             "kb_tools": tools,
             "steps": ["router"],
         }
-    
+
     def router_edge(state: KBWorkflowState) -> str:
         """
         根据 router 决策路由到本地、外部或混合知识源检索
@@ -318,7 +330,9 @@ def create_kb_multi_tool_workflow(
                     # 设置超时时间并调用 PostgreSQL 接口(http post)
                     timeout_cfg = aiohttp.ClientTimeout(total=request_timeout)
                     async with aiohttp.ClientSession(timeout=timeout_cfg) as session:
-                        async with session.post(postgres_search_url, json=payload) as response:
+                        async with session.post(
+                            postgres_search_url, json=payload
+                        ) as response:
                             # 响应状态码为 200 的操作
                             if response.status == 200:
                                 body = await response.json()
@@ -326,13 +340,21 @@ def create_kb_multi_tool_workflow(
                                 if isinstance(data_results, list):
                                     for idx, item in enumerate(data_results):
                                         item_copy = dict(item)
-                                        item_copy["metadata"] = dict(item_copy.get("metadata", {}))
+                                        item_copy["metadata"] = dict(
+                                            item_copy.get("metadata", {})
+                                        )
                                         item_copy["tool"] = "postgres"
 
                                         # 处理相似度分数
-                                        similarity = item_copy.get("similarity") or item_copy.get("score")
+                                        similarity = item_copy.get(
+                                            "similarity"
+                                        ) or item_copy.get("score")
                                         try:
-                                            item_copy["similarity"] = float(similarity) if similarity is not None else 0.0
+                                            item_copy["similarity"] = (
+                                                float(similarity)
+                                                if similarity is not None
+                                                else 0.0
+                                            )
                                         except (TypeError, ValueError):
                                             item_copy["similarity"] = 0.0
 
@@ -342,31 +364,51 @@ def create_kb_multi_tool_workflow(
                                             if item_copy.get(key):
                                                 doc_id = item_copy.get(key)
                                                 break
-                                        item_copy["id"] = str(doc_id or f"postgres_{idx}")
+                                        item_copy["id"] = str(
+                                            doc_id or f"postgres_{idx}"
+                                        )
                                         postgres_results.append(item_copy)
                                     # 重排序
-                                    if postgres_results and knowledge_service.enable_rerank:
-                                        postgres_results = await knowledge_service.rerank_candidates(
-                                            question,
-                                            postgres_results,
-                                            top_k=effective_top_k,
+                                    if (
+                                        postgres_results
+                                        and knowledge_service.enable_rerank
+                                    ):
+                                        postgres_results = (
+                                            await knowledge_service.rerank_candidates(
+                                                question,
+                                                postgres_results,
+                                                top_k=effective_top_k,
+                                            )
                                         )
                                     filtered_postgres: List[Dict[str, Any]] = []
                                     # 根据分数的阈值，过滤 PostgreSQL 结果
                                     for doc in postgres_results:
-                                        similarity = float(doc.get("similarity") or doc.get("score") or 0.0)
-                                        rerank_score = float(doc.get("rerank_score", 0.0))
+                                        similarity = float(
+                                            doc.get("similarity")
+                                            or doc.get("score")
+                                            or 0.0
+                                        )
+                                        rerank_score = float(
+                                            doc.get("rerank_score", 0.0)
+                                        )
                                         if knowledge_service.enable_rerank:
                                             if (
-                                                similarity >= settings.KB_POSTGRES_SIMILARITY_THRESHOLD
-                                                and rerank_score >= settings.KB_POSTGRES_RERANK_SCORE_THRESHOLD
+                                                similarity
+                                                >= settings.KB_POSTGRES_SIMILARITY_THRESHOLD
+                                                and rerank_score
+                                                >= settings.KB_POSTGRES_RERANK_SCORE_THRESHOLD
                                             ):
                                                 filtered_postgres.append(doc)
                                         else:
-                                            if similarity >= settings.KB_POSTGRES_SIMILARITY_THRESHOLD:
+                                            if (
+                                                similarity
+                                                >= settings.KB_POSTGRES_SIMILARITY_THRESHOLD
+                                            ):
                                                 filtered_postgres.append(doc)
                                     # 截断结果,返回 top_k 条
-                                    postgres_results = filtered_postgres[:effective_top_k]
+                                    postgres_results = filtered_postgres[
+                                        :effective_top_k
+                                    ]
                                     kb_logger.info(
                                         "✅ PostgreSQL 返回 {} 条结果，过滤后保留 {} 条",
                                         len(data_results),
@@ -387,12 +429,12 @@ def create_kb_multi_tool_workflow(
                                 )
                 except Exception as e:
                     kb_logger.error("PostgreSQL knowledge search error: {}", e)
-            
+
         # Step 2: 根据 PostgreSQL 结果决定是否需要 Milvus 兜底
         if postgres_results and len(postgres_results) >= 1:
             kb_logger.info(
-                "✅ PostgreSQL 有结果（{}条），直接使用结构化数据，跳过 Milvus 向量查询", 
-                len(postgres_results)
+                "✅ PostgreSQL 有结果（{}条），直接使用结构化数据，跳过 Milvus 向量查询",
+                len(postgres_results),
             )
             combined_results = postgres_results
         # 没有 PostgreSQL 结果，执行 Milvus 向量查询
@@ -442,7 +484,7 @@ def create_kb_multi_tool_workflow(
         if route in {"hybrid", "external"} and allow_external_search and external_url:
             return "external_search"
         return "finalize"
-    
+
     async def external_search(state: KBWorkflowState) -> Dict[str, Any]:
         """外部搜索"""
         if not (allow_external_search and external_url):
@@ -450,27 +492,25 @@ def create_kb_multi_tool_workflow(
                 "Skip external search: 外部知识库路由未配置，无法进行外部搜索"
             )
             return {"external_results": [], "steps": ["external_search"]}
-        
+
         if external_is_postgres and "postgres" in state.get("kb_tools", []):
             kb_logger.debug(
                 "Skip external search: router already执行了 PostgreSQL 工具，且外部检索与其同源。"
             )
             return {"external_results": [], "steps": ["external_search"]}
-        
+
         question = state.get("question", "")
         if not question.strip():
-            kb_logger.warning(
-                "Skip external search: 问题为空，无法进行外部搜索"
-            )
+            kb_logger.warning("Skip external search: 问题为空，无法进行外部搜索")
             return {"external_results": [], "steps": ["external_search"]}
-        
+
         payload: Dict[str, Any] = {
             "query": question,
             "top_k": effective_top_k,
         }
         if effective_threshold:
             payload["threshold"] = effective_threshold
-        
+
         external_results: List[Dict[str, Any]] = []
         try:
             timeout_cfg = aiohttp.ClientTimeout(total=request_timeout)
@@ -496,42 +536,50 @@ def create_kb_multi_tool_workflow(
                         )
         except Exception as e:
             kb_logger.error(f"External search error: {e}", e)
-        
+
         return {"external_results": external_results, "steps": ["external_search"]}
-    
+
     def _format_results(
-            results: List[Dict[str, Any]],
-            *,
-            default_label: str,
-            empty_hint: str,
-    )->str:
+        results: List[Dict[str, Any]],
+        *,
+        default_label: str,
+        empty_hint: str,
+    ) -> str:
         if not results:
             return empty_hint
-        
+
         formatted_results: List[str] = []
-        for idx,doc in enumerate(results[:effective_top_k]):
+        for idx, doc in enumerate(results[:effective_top_k]):
             content = doc.get("content", "").strip()
             metadata = doc.get("metadata", {})
             source = metadata.get("source", "")
-            tool_label = default_label 
-            tag = f"[{tool_label}#{idx+1}]{content}"
+            tool_label = default_label
+            tag = f"[{tool_label}#{idx + 1}]{content}"
             if source:
                 tag = f"{tag}\n来源:{source}"
             formatted_results.append(tag)
         return "\n\n".join(formatted_results)
-    
+
     def _format_milvus_results(results: List[Dict[str, Any]]) -> str:
-        return _format_results(results, default_label="Milvus", empty_hint="⚠️ Milvus 无结果")
-    
+        return _format_results(
+            results, default_label="Milvus", empty_hint="⚠️ Milvus 无结果"
+        )
+
     def _format_postgres_results(results: List[Dict[str, Any]]) -> str:
-        return _format_results(results, default_label="Postgres", empty_hint="⚠️ Postgres 无结果")
-    
+        return _format_results(
+            results, default_label="Postgres", empty_hint="⚠️ Postgres 无结果"
+        )
+
     def _format_local_results(results: List[Dict[str, Any]]) -> str:
-        return _format_results(results, default_label="本地知识库", empty_hint="⚠️ 本地知识库无结果")
+        return _format_results(
+            results, default_label="本地知识库", empty_hint="⚠️ 本地知识库无结果"
+        )
 
     def _format_external_results(results: List[Dict[str, Any]]) -> str:
-        return _format_results(results, default_label="外部知识库", empty_hint="⚠️ 外部知识库无结果")
-    
+        return _format_results(
+            results, default_label="外部知识库", empty_hint="⚠️ 外部知识库无结果"
+        )
+
     def _collect_sources(*result_sets: List[Dict[str, Any]]) -> List[str]:
         """收集所有结果集中的来源
         注意：result_sets是一个元组，元组中的每个元素都是一个List[Dict[str, Any]]
@@ -550,16 +598,17 @@ def create_kb_multi_tool_workflow(
             seen.setdefault(source, None)
         return list(seen.keys())
 
-    
     async def finalize(state: KBWorkflowState) -> KBOutputState:
         """最终回答"""
         if state.get("guardrails_decision") == "end":
             summary = state.get("summary", "抱歉，该问题暂时无法回答。")
             return {"answer": summary, "steps": ["finalize"], "sources": []}
-        
+
         milvus_results = state.get("milvus_results", [])
         postgres_results = state.get("postgres_results", [])
-        local_results = state.get("local_results", []) or (milvus_results + postgres_results)
+        local_results = state.get("local_results", []) or (
+            milvus_results + postgres_results
+        )
         external_results = state.get("external_results", [])
 
         milvus_context = _format_milvus_results(milvus_results)
@@ -568,12 +617,12 @@ def create_kb_multi_tool_workflow(
         external_context = _format_external_results(external_results)
 
         sources = _collect_sources(milvus_results, postgres_results, external_results)
-               
+
         prompt = final_prompt.format_messages(
-            question = state.get("question", ""),
-            milvus_context = milvus_context,
-            postgres_context = postgres_context,
-            external_context = external_context,
+            question=state.get("question", ""),
+            milvus_context=milvus_context,
+            postgres_context=postgres_context,
+            external_context=external_context,
         )
 
         try:
@@ -585,7 +634,7 @@ def create_kb_multi_tool_workflow(
                 answer = str(content).strip()
         except Exception as e:
             kb_logger.error(f"Finalize error: {e}", e)
-            
+
         if not answer:
             answer = "检索已完成，但当前无法生成可靠的菜谱文化回答。"
 
@@ -595,13 +644,12 @@ def create_kb_multi_tool_workflow(
             "sources": sources,
         }
 
-
     # 定义状态图
     graph_builder = StateGraph(
         KBWorkflowState,
         input=KBInputState,
         output=KBOutputState,
-    ) 
+    )
 
     graph_builder.add_node("guardrails", guardrails)
     graph_builder.add_node("kb_router", router)
@@ -617,4 +665,3 @@ def create_kb_multi_tool_workflow(
     graph_builder.add_edge("finalize", END)
 
     return graph_builder.compile()
-

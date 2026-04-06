@@ -96,7 +96,7 @@ def print_loading_message(message: str = "初始化系统...") -> None:
 
 def print_power_quote() -> None:
     """打印随机励志名言"""
-    quotes =  [
+    quotes = [
         "No pain, no gain - 没有付出，就没有收获",
         "强者不是赢过别人，而是赢过昨天的自己",
         "Strength does not come from physical capacity. It comes from an indomitable will.",
@@ -108,7 +108,8 @@ def print_power_quote() -> None:
     quote = random.choice(quotes)
     console.print(f"\n[bold orange1]  💬 {quote}[/]\n")
 
-def start_banner(text: str, message: str="系统启动中"):
+
+def start_banner(text: str, message: str = "系统启动中"):
     print_vibrant_banner(text)
     print_loading_message(message)
     print_power_quote()

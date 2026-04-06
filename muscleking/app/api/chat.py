@@ -1,20 +1,25 @@
 """
 具有智能体聊天功能的API
 """
-from fastapi import APIRouter, HTTPException, Depends
+
+from fastapi import APIRouter, Depends
 from muscleking.app.agents.models.model_chat import ChatRequest, ChatResponse
 import uuid
-from typing import Optional
 from sqlalchemy.orm import Session
-from muscleking.app.services.service_chat import get_or_create_session, save_message, process_agent_query
+from muscleking.app.services.service_chat import (
+    get_or_create_session,
+    save_message,
+    process_agent_query,
+)
 from muscleking.app.persistence.core.database import get_db
 
 router = APIRouter(tags=["Unified Chat"])
 
-@router.post("/chat",response_model=ChatResponse)
+
+@router.post("/chat", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
-    db: Session = Depends(get_db)  # 使用数据库会话依赖
+    db: Session = Depends(get_db),  # 使用数据库会话依赖
 ) -> ChatResponse:
     """
     具有Agent智能体聊天功能的API端点
@@ -40,9 +45,9 @@ async def chat(
         result["message"],
         is_user=False,
         route=result["route"],
-        metadata=result.get("metadata")
+        metadata=result.get("metadata"),
     )
-    
+
     return ChatResponse(
         message=result["message"],
         session_id=session_id,
@@ -50,5 +55,5 @@ async def chat(
         route=result["route"],
         route_logic=result["route_logic"],
         sources=result.get("sources"),
-        metadata=result.get("metadata")
+        metadata=result.get("metadata"),
     )

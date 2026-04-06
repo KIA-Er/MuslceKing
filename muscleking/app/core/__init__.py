@@ -1,5 +1,3 @@
 from .lifespan import lifespan
 
-__all__ = [
-    "lifespan"
-]
+__all__ = ["lifespan"]

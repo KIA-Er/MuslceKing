@@ -3,9 +3,9 @@ from typing import Any, Callable, Coroutine
 from muscleking.app.agents.agent_state import OverallState
 
 
-def create_final_answer_node() -> (
-    Callable[[OverallState], Coroutine[Any, Any, dict[str, Any]]]
-):
+def create_final_answer_node() -> Callable[
+    [OverallState], Coroutine[Any, Any, dict[str, Any]]
+]:
     """
     Create a final_answer node for a LangGraph workflow.
 
@@ -33,7 +33,9 @@ def create_final_answer_node() -> (
             "cyphers": [
                 {
                     "task": c.task if hasattr(c, "task") else c.get("task", ""),
-                    "records": c.records if hasattr(c, "records") else c.get("records", {}),
+                    "records": c.records
+                    if hasattr(c, "records")
+                    else c.get("records", {}),
                 }
                 for c in state.get("cyphers", list())
             ],

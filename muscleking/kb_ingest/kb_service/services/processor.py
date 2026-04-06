@@ -6,9 +6,9 @@ import logging
 import re
 import sys
 import time
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional
+from typing import Dict, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -25,7 +25,12 @@ from kb_service.services.vector_store import VectorStoreWriter
 class DataProcessor:
     """用于展平表格数据、重写行并写入pgvector的高级管道。"""
 
-    def __init__(self, config: Config, prompt_manager: Optional[PromptManager] = None, incremental: bool = False):
+    def __init__(
+        self,
+        config: Config,
+        prompt_manager: Optional[PromptManager] = None,
+        incremental: bool = False,
+    ):
         self.config = config
         self.llm_client = LLMClient(config) if config.use_llm else None
         self.prompt_manager = prompt_manager or build_prompt_manager_from_env()
@@ -35,7 +40,7 @@ class DataProcessor:
         self.incremental = incremental  # 是否启用增量模式
 
         # 为本次处理创建时间戳目录
-        self.timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.output_dir = Path("save") / self.timestamp
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -118,7 +123,9 @@ class DataProcessor:
     def process_excel(self) -> None:
         """处理Excel文件的主方法"""
         self.logger.info("开始处理Excel文件: %s", self.config.excel_file_path)
-        self.logger.info("LLM提供商: %s, 模型: %s", self.config.llm_provider, self.config.llm_model)
+        self.logger.info(
+            "LLM提供商: %s, 模型: %s", self.config.llm_provider, self.config.llm_model
+        )
         # 读取Excel文件
         xls = pd.ExcelFile(self.config.excel_file_path)
         # 获取工作表数量
@@ -154,12 +161,16 @@ class DataProcessor:
             end_idx = min(start_idx + self.config.batch_size, total_rows)
             # 按位置（整数索引行号）切片取出一个子集
             batch_df = df.iloc[start_idx:end_idx]
-            self.logger.info("  处理批次 %s-%s/%s...", start_idx + 1, end_idx, total_rows)
+            self.logger.info(
+                "  处理批次 %s-%s/%s...", start_idx + 1, end_idx, total_rows
+            )
             # 将每个批次的数据逐行处理
             for row_idx, row in batch_df.iterrows():
                 processed_count += 1
                 progress = processed_count / total_rows * 100
-                self.logger.info("  进度: %.1f%% (%s/%s)", progress, processed_count, total_rows)
+                self.logger.info(
+                    "  进度: %.1f%% (%s/%s)", progress, processed_count, total_rows
+                )
 
                 prev_count = len(self.processed_data)
                 # 调用 _process_row() 方法处理当前行数据
@@ -197,7 +208,9 @@ class DataProcessor:
             # 调用 LLM 客户端生成文本，指定重试次数
             for attempt in range(self.config.retry_times):
                 try:
-                    rewritten_text = self.llm_client.generate(user_prompt, system_prompt)
+                    rewritten_text = self.llm_client.generate(
+                        user_prompt, system_prompt
+                    )
                     if rewritten_text:
                         break
                 except Exception as exc:
@@ -337,6 +350,7 @@ class DataProcessor:
         重新生成向量并存储到数据库
         支持限制恢复记录数量"""
         import pandas as pd
+
         path = Path(csv_path or self.csv_path)
         if not path.exists():
             self.logger.error("CSV文件不存在：%s", path)
@@ -369,7 +383,9 @@ class DataProcessor:
         使用正则表达式解析 TXT 文件格式
         提取表名、ID、公司名、内容信息
         按块 yield 数据"""
-        header_re = re.compile(r"^\[(?P<table>.+?)\s*-\s*ID:(?P<id>.+?)\]\s*(?P<company>.*)\s*$")
+        header_re = re.compile(
+            r"^\[(?P<table>.+?)\s*-\s*ID:(?P<id>.+?)\]\s*(?P<company>.*)\s*$"
+        )
         sep_re = re.compile(r"^\-{40,}\s*$")
 
         current = None
@@ -378,7 +394,11 @@ class DataProcessor:
         with txt_path.open("r", encoding="utf-8") as fh:
             for raw_line in fh:
                 line = raw_line.rstrip("\n")
-                if line.startswith("===") or line.startswith("处理时间:") or line.startswith("LLM模型:"):
+                if (
+                    line.startswith("===")
+                    or line.startswith("处理时间:")
+                    or line.startswith("LLM模型:")
+                ):
                     continue
                 if current is None:
                     match = header_re.match(line.strip())
@@ -537,10 +557,10 @@ class DataProcessor:
             return
 
         sql = f"""
-            SELECT source_table, source_id, content, company_name, 
+            SELECT source_table, source_id, content, company_name,
                    report_year, metadata
             FROM searchable_documents
-            WHERE {' AND '.join(conditions)}
+            WHERE {" AND ".join(conditions)}
         """
 
         cur.execute(sql, params)
@@ -574,7 +594,9 @@ class DataProcessor:
                 new_content = None
                 for attempt in range(self.config.retry_times):
                     try:
-                        new_content = self.llm_client.generate(user_prompt, system_prompt)
+                        new_content = self.llm_client.generate(
+                            user_prompt, system_prompt
+                        )
                         if new_content:
                             break
                     except Exception as exc:
@@ -586,7 +608,9 @@ class DataProcessor:
                     content = new_content
                     self.logger.info("✓ 重新生成: %s-%s", source_table, source_id)
                 else:
-                    self.logger.warning("✗ 生成失败，使用原内容: %s-%s", source_table, source_id)
+                    self.logger.warning(
+                        "✗ 生成失败，使用原内容: %s-%s", source_table, source_id
+                    )
 
             items.append(
                 {
@@ -602,7 +626,9 @@ class DataProcessor:
         self.vector_writer.upsert(items, self.logger)
         self.logger.info("✓ 处理完成，共更新 %s 条记录", len(items))
 
-    def delete_records(self, source_table: str = None, source_ids: Optional[List[str]] = None):
+    def delete_records(
+        self, source_table: str = None, source_ids: Optional[List[str]] = None
+    ):
         """删除指定的记录"""
         if not source_table or not source_ids:
             self.logger.error("必须指定表名和记录ID")

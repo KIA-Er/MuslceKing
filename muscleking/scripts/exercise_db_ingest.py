@@ -7,9 +7,9 @@ exerciseDB 数据导入脚本
 使用方法:
     python scripts/exercise_db_ingest.py [--limit N] [--batch-size N] [--clear]
 """
+
 import asyncio
 import argparse
-import json
 import aiohttp
 from typing import Any, Dict, List, Optional, Set
 from pathlib import Path
@@ -28,21 +28,24 @@ sys.path.insert(0, str(scripts_parent))
 # 尝试从 settings 获取配置，如果不可用则使用默认值
 try:
     from muscleking.config import settings
-    NEO4J_URI = getattr(settings, 'NEO4J_URI', 'bolt://localhost:7687')
-    NEO4J_USER = getattr(settings, 'NEO4J_USER', 'neo4j')
-    NEO4J_PASSWORD = getattr(settings, 'NEO4J_PASSWORD', 'muscleking')
-    NEO4J_DATABASE = getattr(settings, 'NEO4J_DATABASE', 'neo4j')
+
+    NEO4J_URI = getattr(settings, "NEO4J_URI", "bolt://localhost:7687")
+    NEO4J_USER = getattr(settings, "NEO4J_USER", "neo4j")
+    NEO4J_PASSWORD = getattr(settings, "NEO4J_PASSWORD", "muscleking")
+    NEO4J_DATABASE = getattr(settings, "NEO4J_DATABASE", "neo4j")
 except ImportError:
-    NEO4J_URI = 'bolt://localhost:7687'
-    NEO4J_USER = 'neo4j'
-    NEO4J_PASSWORD = 'muscleking'
-    NEO4J_DATABASE = 'neo4j'
+    NEO4J_URI = "bolt://localhost:7687"
+    NEO4J_USER = "neo4j"
+    NEO4J_PASSWORD = "muscleking"
+    NEO4J_DATABASE = "neo4j"
 
 from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
 
 
 # exerciseDB API 基础 URL
-EXERCISE_DB_BASE_URL = "https://raw.githubusercontent.com/yuhonas/exerciseDB/main/exercises"
+EXERCISE_DB_BASE_URL = (
+    "https://raw.githubusercontent.com/yuhonas/exerciseDB/main/exercises"
+)
 
 
 class ExerciseDBIngester:
@@ -57,7 +60,7 @@ class ExerciseDBIngester:
         self.neo4j_graph = neo4j_graph
         self.limit = limit
         self.batch_size = batch_size
-        
+
         # 已存在的节点集合，用于避免重复创建
         self.existing_muscles: Set[str] = set()
         self.existing_equipment: Set[str] = set()
@@ -69,18 +72,18 @@ class ExerciseDBIngester:
     async def fetch_exercises(self) -> List[Dict[str, Any]]:
         """从 exerciseDB 获取所有动作数据"""
         logger.info("正在从 exerciseDB 获取数据...")
-        
+
         async with aiohttp.ClientSession() as session:
             try:
                 async with session.get(f"{EXERCISE_DB_BASE_URL}.json") as response:
                     if response.status != 200:
                         raise Exception(f"API 请求失败: {response.status}")
                     data = await response.json()
-                    
+
                     exercises = data.get("exercises", []) or data
                     if self.limit:
-                        exercises = exercises[:self.limit]
-                    
+                        exercises = exercises[: self.limit]
+
                     logger.info(f"获取到 {len(exercises)} 个训练动作")
                     return exercises
             except Exception as e:
@@ -91,32 +94,32 @@ class ExerciseDBIngester:
         """解析单个动作数据为知识图谱格式"""
         # 标准化字段名
         name = raw_data.get("name", "")
-        
+
         # 解析设备
         equipment_list = self._normalize_list(raw_data.get("equipment", []))
         if isinstance(equipment_list, str):
             equipment_list = [equipment_list]
-        
+
         # 解析身体部位
         body_parts = self._normalize_list(raw_data.get("bodyPart", []))
         if isinstance(body_parts, str):
             body_parts = [body_parts]
-        
+
         # 解析目标肌肉
         target_muscles = self._normalize_list(raw_data.get("targetMuscle", []))
         if isinstance(target_muscles, str):
             target_muscles = [target_muscles]
-        
+
         # 解析辅助肌肉
         secondary_muscles = self._normalize_list(raw_data.get("secondaryMuscles", []))
         if isinstance(secondary_muscles, str):
             secondary_muscles = [secondary_muscles]
-        
+
         # 解析指导步骤
         instructions = self._normalize_list(raw_data.get("instructions", []))
         if isinstance(instructions, str):
             instructions = [instructions]
-        
+
         return {
             "id": raw_data.get("id", name),
             "name": name,
@@ -144,74 +147,76 @@ class ExerciseDBIngester:
             return text
         return words[0] + "".join(w.capitalize() for w in words[1:])
 
-    async def create_graph_nodes_and_relationships(self, exercise: Dict[str, Any]) -> List[str]:
+    async def create_graph_nodes_and_relationships(
+        self, exercise: Dict[str, Any]
+    ) -> List[str]:
         """为单个动作创建节点和关系的 Cypher 语句"""
         cypher_statements = []
-        
+
         name = exercise["name"]
         exercise_id = exercise["id"]
-        
+
         # 1. 创建 Exercise 节点
-        cypher_statements.append(f"""
-            MERGE (e:Exercise {{id: $exercise_id}})
+        cypher_statements.append("""
+            MERGE (e:Exercise {id: $exercise_id})
             SET e.name = $name,
                 e.description = $description,
                 e.calories_per_min = $calories
         """)
-        
+
         # 2. 创建 Equipment 节点和关系
         for equip in exercise["equipment"]:
             equip_normalized = self._normalize_equipment(equip)
             self.existing_equipment.add(equip_normalized)
-            cypher_statements.append(f"""
-                MERGE (eq:Equipment {{name: $equip_name}})
+            cypher_statements.append("""
+                MERGE (eq:Equipment {name: $equip_name})
                 WITH e, eq
                 MERGE (e)-[:USES_EQUIPMENT]->(eq)
             """)
-        
+
         # 3. 创建 Muscle 节点和关系 (目标肌群)
         for muscle in exercise["target_muscles"]:
             muscle_normalized = self._normalize_muscle(muscle)
             self.existing_muscles.add(muscle_normalized)
-            cypher_statements.append(f"""
-                MERGE (m:Muscle {{name: $muscle_name}})
+            cypher_statements.append("""
+                MERGE (m:Muscle {name: $muscle_name})
                 WITH e, m
                 MERGE (e)-[:TARGETS_MUSCLE]->(m)
             """)
-        
+
         # 4. 创建 Difficulty 节点和关系
         difficulty = self._estimate_difficulty(exercise)
-        cypher_statements.append(f"""
-            MERGE (d:Difficulty {{name: $difficulty}})
+        cypher_statements.append("""
+            MERGE (d:Difficulty {name: $difficulty})
             WITH e, d
             MERGE (e)-[:HAS_DIFFICULTY]->(d)
         """)
-        
+
         # 5. 创建 ExerciseStep 节点和关系
         for idx, instruction in enumerate(exercise["instructions"], 1):
-            cypher_statements.append(f"""
-                MERGE (s:ExerciseStep {{id: $step_id}})
+            cypher_statements.append("""
+                MERGE (s:ExerciseStep {id: $step_id})
                 SET s.order = $order,
                     s.instruction = $instruction
                 WITH e, s
                 MERGE (e)-[:HAS_STEP]->(s)
             """)
-        
+
         # 6. 创建 TrainingGoal 节点和关系
         for goal in self._estimate_goals(exercise):
             self.existing_goals.add(goal)
-            cypher_statements.append(f"""
-                MERGE (g:TrainingGoal {{name: $goal}})
+            cypher_statements.append("""
+                MERGE (g:TrainingGoal {name: $goal})
                 WITH e, g
                 MERGE (e)-[:SUPPORTS_GOAL]->(g)
             """)
-        
+
         return cypher_statements
 
     def _normalize_equipment(self, equip: str) -> str:
         """标准化器械名称"""
         equip_lower = equip.lower().strip()
-        
+
         equipment_mapping = {
             "body": "自重",
             "body weight": "自重",
@@ -224,13 +229,13 @@ class ExerciseDBIngester:
             "resistance band": "弹力带",
             "medicine ball": "药球",
         }
-        
+
         return equipment_mapping.get(equip_lower, equip)
 
     def _normalize_muscle(self, muscle: str) -> str:
         """标准化肌群名称"""
         muscle_lower = muscle.lower().strip()
-        
+
         muscle_mapping = {
             "chest": "胸肌",
             "pectorals": "胸肌",
@@ -266,17 +271,26 @@ class ExerciseDBIngester:
             "hip flexors": "髋部屈肌",
             "adductors": "内收肌",
         }
-        
+
         return muscle_mapping.get(muscle_lower, muscle)
 
     def _estimate_difficulty(self, exercise: Dict[str, Any]) -> str:
         """根据动作特征估算难度"""
         name = exercise["name"].lower()
-        
+
         # 简单规则估算
-        difficult_keywords = ["爆发", "爆发力", "奥林匹克", "挺举", "抓举", "硬拉", "深蹲", "卧推"]
+        difficult_keywords = [
+            "爆发",
+            "爆发力",
+            "奥林匹克",
+            "挺举",
+            "抓举",
+            "硬拉",
+            "深蹲",
+            "卧推",
+        ]
         easy_keywords = ["拉伸", "热身", "放松", "收缩", "激活"]
-        
+
         if any(kw in name for kw in difficult_keywords):
             return "hard"
         elif any(kw in name for kw in easy_keywords):
@@ -288,52 +302,61 @@ class ExerciseDBIngester:
         """根据动作类型估算训练目标"""
         name = exercise["name"].lower()
         equipment = exercise.get("equipment", [])
-        
+
         goals = ["增肌", "力量"]
-        
+
         # 有氧相关
         if any(kw in name for kw in ["跑步", "跳绳", "登山", "跳跃", "波比"]):
             goals.append("减脂")
             goals.append("心肺")
-        
+
         # 核心训练
         if any(kw in name for kw in ["平板", "卷腹", "桥", "死虫", "俄罗斯转体"]):
             goals.append("核心")
-        
+
         return goals
 
     async def import_to_neo4j(self, exercises: List[Dict[str, Any]]):
         """将解析后的数据导入 Neo4j"""
         logger.info("开始导入数据到 Neo4j...")
-        
+
         total = len(exercises)
-        
+
         # 先创建基础约束
         await self._create_constraints()
-        
+
         for i, raw_exercise in enumerate(exercises):
             try:
                 exercise = self.parse_exercise(raw_exercise)
-                cypher_statements = await self.create_graph_nodes_and_relationships(exercise)
-                
+                cypher_statements = await self.create_graph_nodes_and_relationships(
+                    exercise
+                )
+
                 # 批量执行
                 for stmt in cypher_statements:
                     try:
-                        self.neo4j_graph.query(stmt, params={
-                            "exercise_id": exercise["id"],
-                            "name": exercise["name"],
-                            "description": exercise["description"][:500] if exercise["description"] else "",
-                            "calories": 5,  # 默认值
-                        })
+                        self.neo4j_graph.query(
+                            stmt,
+                            params={
+                                "exercise_id": exercise["id"],
+                                "name": exercise["name"],
+                                "description": exercise["description"][:500]
+                                if exercise["description"]
+                                else "",
+                                "calories": 5,  # 默认值
+                            },
+                        )
                     except Exception as e:
                         logger.debug(f"执行 Cypher 语句失败: {e}")
-                
+
                 if (i + 1) % self.batch_size == 0:
-                    logger.info(f"进度: {i + 1}/{total} ({100*(i+1)//total}%)")
-                    
+                    logger.info(f"进度: {i + 1}/{total} ({100 * (i + 1) // total}%)")
+
             except Exception as e:
-                logger.warning(f"导入动作失败: {exercise.get('name', 'Unknown')}, 错误: {e}")
-        
+                logger.warning(
+                    f"导入动作失败: {exercise.get('name', 'Unknown')}, 错误: {e}"
+                )
+
         logger.info(f"导入完成！共处理 {total} 个动作")
 
     async def _create_constraints(self):
@@ -347,13 +370,13 @@ class ExerciseDBIngester:
             "CREATE CONSTRAINT IF NOT EXISTS goal_name ON (g:TrainingGoal) ASSERT g.name IS UNIQUE",
             "CREATE CONSTRAINT IF NOT EXISTS step_id ON (s:ExerciseStep) ASSERT s.id IS UNIQUE",
         ]
-        
+
         for constraint in constraints:
             try:
                 self.neo4j_graph.query(constraint)
             except Exception as e:
                 logger.debug(f"创建约束失败 (可能已存在): {e}")
-        
+
         logger.info("基础约束创建完成")
 
 
@@ -364,38 +387,42 @@ async def main():
     parser.add_argument("--limit", type=int, default=None, help="限制导入的动作数量")
     parser.add_argument("--batch-size", type=int, default=50, help="批量处理大小")
     parser.add_argument("--clear", action="store_true", help="清空现有数据后导入")
-    
+
     args = parser.parse_args()
-    
+
     # 配置日志
     logger.remove()
-    logger.add(sys.stdout, level="INFO", format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{message}</cyan>")
-    
+    logger.add(
+        sys.stdout,
+        level="INFO",
+        format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{message}</cyan>",
+    )
+
     try:
         # 获取 Neo4j 连接
         neo4j_graph = get_neo4j_graph()
         logger.info(f"成功连接到 Neo4j: {settings.NEO4J_URI}")
-        
+
         # 创建导入器
         ingester = ExerciseDBIngester(
             neo4j_graph=neo4j_graph,
             limit=args.limit,
             batch_size=args.batch_size,
         )
-        
+
         if args.clear:
             logger.warning("清空模式: 将删除所有 Exercise 相关的节点和关系")
             neo4j_graph.query("MATCH (e:Exercise)-[r]-() DELETE r")
             neo4j_graph.query("MATCH (e:Exercise) DELETE e")
             neo4j_graph.query("MATCH (m:Muscle) WHERE NOT (m)--() DELETE m")
             neo4j_graph.query("MATCH (eq:Equipment) WHERE NOT (eq)--() DELETE eq")
-        
+
         # 获取并导入数据
         exercises = await ingester.fetch_exercises()
         await ingester.import_to_neo4j(exercises)
-        
+
         logger.info("✅ exerciseDB 数据导入完成！")
-        
+
     except Exception as e:
         logger.error(f"导入失败: {e}")
         sys.exit(1)

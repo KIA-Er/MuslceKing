@@ -21,7 +21,7 @@ def flatten_row(row: Mapping[str, object], config: Config) -> str:
 
     Returns:
         扁平化的键值对字符串，格式为 "key1:value1 | key2:value2 | ..."
-    
+
     Example:
     输入：
         row = {
@@ -54,7 +54,9 @@ def flatten_row(row: Mapping[str, object], config: Config) -> str:
         if re.match(r"^Unnamed[:\s]", normalized_key, flags=re.I):
             continue
         # 处理重复键(条件：键未出现过 或 旧的值是空的而新值非空)
-        if normalized_key not in seen or (not _nonempty(seen[normalized_key]) and _nonempty(value)):
+        if normalized_key not in seen or (
+            not _nonempty(seen[normalized_key]) and _nonempty(value)
+        ):
             if isinstance(value, (pd.Timestamp, datetime, date)):
                 value = pd.Timestamp(value).isoformat(sep=" ", timespec="seconds")
             seen[normalized_key] = value

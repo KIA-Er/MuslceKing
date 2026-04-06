@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class ExcelIngestRequest(BaseModel):
     """Excel 处理请求"""
+
     excel_path: str = Field(..., description="需要处理的 Excel 文件的路径。")
     regenerate: bool = Field(
         default=False,
@@ -20,16 +21,23 @@ class ExcelIngestRequest(BaseModel):
 
 class MySQLIngestRequest(BaseModel):
     """MySQL 数据导入请求"""
-    connection_url: str = Field(..., description="SQLAlchemy style MySQL connection URL.")
+
+    connection_url: str = Field(
+        ..., description="SQLAlchemy style MySQL connection URL."
+    )
     table: str = Field(..., description="Table name to read from.")
     where: Optional[str] = Field(None, description="Optional SQL WHERE clause.")
-    limit: Optional[int] = Field(None, ge=1, description="Maximum number of rows to ingest.")
+    limit: Optional[int] = Field(
+        None, ge=1, description="Maximum number of rows to ingest."
+    )
     prompt_key: Optional[str] = Field(
-        None, description="Optional prompt template key if not inferred from the table name."
+        None,
+        description="Optional prompt template key if not inferred from the table name.",
     )
     extra_metadata: Dict[str, Any] = Field(description="Static metadata to persist.")
     mode: Literal["rewrite", "flatten"] = Field(
-        default="rewrite", description="Rewrite with LLM or directly flatten the row for embedding."
+        default="rewrite",
+        description="Rewrite with LLM or directly flatten the row for embedding.",
     )
     prompt_template: Optional[str] = Field(
         default=None,
@@ -39,8 +47,12 @@ class MySQLIngestRequest(BaseModel):
         default=None,
         description="Column to use as unique identifier; defaults to row index if omitted.",
     )
-    company_field: Optional[str] = Field(default=None, description="Field containing company name (optional).")
-    report_year_field: Optional[str] = Field(default=None, description="Field containing report year (optional).")
+    company_field: Optional[str] = Field(
+        default=None, description="Field containing company name (optional)."
+    )
+    report_year_field: Optional[str] = Field(
+        default=None, description="Field containing report year (optional)."
+    )
     chunk_size: Optional[int] = Field(
         default=None,
         ge=1,

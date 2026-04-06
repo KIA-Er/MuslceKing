@@ -4,21 +4,22 @@ from typing import Iterable, Sequence
 import regex as re
 from langchain_neo4j import Neo4jGraph
 
-#unicode编码 对应的汉字
-COL_CHINESE_MEANING = "\u4e2d\u6587\u542b\u4e49" # 中文含义
-COL_MAIN_PROPERTIES = "\u4e3b\u8981\u5c5e\u6027" # 主要属性
-COL_NOTE_EXAMPLE = "\u5907\u6ce8\u793a\u4f8b" # 备注示例
-COL_REL_TYPE = "\u7c7b\u578b" #类型
-COL_REL_DIRECTION = "\u8d77\u70b9 \u2192 \u7ec8\u70b9" # 起点 → 终点
-ALT_REL_DIRECTION = "\u8d77\u70b9 -> \u7ec8\u70b9" # 起点 -> 终点
-SECTION_ATTRIBUTES = "\u8282\u70b9\u4e0e\u5173\u7cfb\u5c5e\u6027" # 节点与关系属性
+# unicode编码 对应的汉字
+COL_CHINESE_MEANING = "\u4e2d\u6587\u542b\u4e49"  # 中文含义
+COL_MAIN_PROPERTIES = "\u4e3b\u8981\u5c5e\u6027"  # 主要属性
+COL_NOTE_EXAMPLE = "\u5907\u6ce8\u793a\u4f8b"  # 备注示例
+COL_REL_TYPE = "\u7c7b\u578b"  # 类型
+COL_REL_DIRECTION = "\u8d77\u70b9 \u2192 \u7ec8\u70b9"  # 起点 → 终点
+ALT_REL_DIRECTION = "\u8d77\u70b9 -> \u7ec8\u70b9"  # 起点 -> 终点
+SECTION_ATTRIBUTES = "\u8282\u70b9\u4e0e\u5173\u7cfb\u5c5e\u6027"  # 节点与关系属性
+
 
 def get_cypher_query_node_graph_schema() -> str:
     # 以 "- CypherQuery" 开始的整个段落，直到 "Relationship properties" 或 "- " 为止
     return r"^(- \*\*CypherQuery\*\*[\s\S]+?)(^Relationship properties|- \*)"
 
 
-#从 Markdown 文本中提取连续的表格块
+# 从 Markdown 文本中提取连续的表格块
 def _extract_table_blocks(markdown: str) -> list[list[str]]:
     """
     从 Markdown 文本中提取连续的表格块 (lines starting with '|').
@@ -39,7 +40,7 @@ def _extract_table_blocks(markdown: str) -> list[list[str]]:
     return tables
 
 
-#解析 Markdown 表格块，返回表头和表格数据
+# 解析 Markdown 表格块，返回表头和表格数据
 def _parse_markdown_table(lines: Iterable[str]) -> tuple[list[str], list[list[str]]]:
     """
     解析 Markdown 表格块，返回表头和表格数据.
@@ -66,6 +67,7 @@ def _parse_markdown_table(lines: Iterable[str]) -> tuple[list[str], list[list[st
 
     return (header or []), rows
 
+
 def _lookup_cell(
     cells: Sequence[str],
     header: Sequence[str],
@@ -83,6 +85,7 @@ def _lookup_cell(
     if fallback_index is not None and fallback_index < len(cells):
         return cells[fallback_index].strip()
     return ""
+
 
 def _extract_markdown_section(markdown: str, heading: str) -> str:
     """
@@ -103,18 +106,11 @@ def _extract_markdown_section(markdown: str, heading: str) -> str:
     return "\n".join(cleaned_lines).strip()
 
 
-
-
-
 def _format_exercise_schema_from_docs() -> str:
     """
     Build a concise, LLM-friendly schema summary based on docs/exercise_kg_schema.md.
     """
-    doc_path = (
-        Path(__file__).resolve().parents[6]
-        / "docs"
-        / "exercise_kg_schema.md"
-    )
+    doc_path = Path(__file__).resolve().parents[6] / "docs" / "exercise_kg_schema.md"
     if not doc_path.exists():
         return ""
 
@@ -129,9 +125,7 @@ def _format_exercise_schema_from_docs() -> str:
 
     tables = _extract_table_blocks(markdown)
 
-    node_header, node_rows = (
-        _parse_markdown_table(tables[0]) if tables else ([], [])
-    )
+    node_header, node_rows = _parse_markdown_table(tables[0]) if tables else ([], [])
     relationship_header, relationship_rows = (
         _parse_markdown_table(tables[1]) if len(tables) > 1 else ([], [])
     )
@@ -217,6 +211,7 @@ def _format_exercise_schema_from_docs() -> str:
         summary_lines.append(attribute_section)
 
     return "\n".join(summary_lines).strip()
+
 
 def retrieve_and_parse_schema_from_graph_for_prompts(graph: Neo4jGraph) -> str:
     """

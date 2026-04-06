@@ -30,7 +30,9 @@ class VectorSearcher:
                     self.config.rerank_max_candidates,
                 )
             except Exception as exc:  # pragma: no cover
-                self.logger.warning("初始化 RerankerClient 失败，将回退到纯向量排序: %s", exc)
+                self.logger.warning(
+                    "初始化 RerankerClient 失败，将回退到纯向量排序: %s", exc
+                )
                 self.rerank_client = None
 
     def search_similar(
@@ -105,7 +107,9 @@ class VectorSearcher:
             metadata_dict = {}
             if row[3]:  # metadata
                 try:
-                    metadata_dict = json.loads(row[3]) if isinstance(row[3], str) else row[3]
+                    metadata_dict = (
+                        json.loads(row[3]) if isinstance(row[3], str) else row[3]
+                    )
                 except Exception:  # pragma: no cover - best effort
                     pass
 
@@ -163,7 +167,12 @@ class VectorSearcher:
         Returns:
             包含 vector_results, rerank_results, hybrid_results 的字典
         """
-        self.logger.info("混合召回: %s... (vector_top_k=%d, rerank_top_k=%d)", query[:50], vector_top_k, rerank_top_k)
+        self.logger.info(
+            "混合召回: %s... (vector_top_k=%d, rerank_top_k=%d)",
+            query[:50],
+            vector_top_k,
+            rerank_top_k,
+        )
 
         # 1. 向量检索
         vector_results = self.search_similar(
@@ -179,19 +188,25 @@ class VectorSearcher:
         if self.rerank_client and vector_results:
             # 准备 candidates
             candidates = []
-            for item in vector_results[:min(vector_top_k, len(vector_results))]:
-                candidates.append({
-                    "id": str(item["id"]),
-                    "text": item.get("content") or "",
-                    "metadata": {
-                        "source_table": item.get("source_table"),
-                        "source_id": item.get("source_id"),
-                        "similarity": item.get("similarity"),
-                    },
-                })
+            for item in vector_results[: min(vector_top_k, len(vector_results))]:
+                candidates.append(
+                    {
+                        "id": str(item["id"]),
+                        "text": item.get("content") or "",
+                        "metadata": {
+                            "source_table": item.get("source_table"),
+                            "source_id": item.get("source_id"),
+                            "similarity": item.get("similarity"),
+                        },
+                    }
+                )
 
             # 调用 rerank
-            reranked = self.rerank_client.rerank(query, candidates, top_n=rerank_top_k) if candidates else None
+            reranked = (
+                self.rerank_client.rerank(query, candidates, top_n=rerank_top_k)
+                if candidates
+                else None
+            )
 
             if reranked:
                 # 构建 ID 映射
@@ -218,13 +233,21 @@ class VectorSearcher:
 
             if intersection_ids:
                 # 有交集：返回交集中的结果（按 rerank 顺序）
-                hybrid_results = [item for item in rerank_results if item["id"] in intersection_ids]
-                self.logger.info("返回交集结果: %d 个（向量 %d + Rerank %d）",
-                               len(hybrid_results), len(vector_ids), len(rerank_ids))
+                hybrid_results = [
+                    item for item in rerank_results if item["id"] in intersection_ids
+                ]
+                self.logger.info(
+                    "返回交集结果: %d 个（向量 %d + Rerank %d）",
+                    len(hybrid_results),
+                    len(vector_ids),
+                    len(rerank_ids),
+                )
             else:
                 # 没有交集：只返回 rerank 结果
                 hybrid_results = rerank_results
-                self.logger.info("向量和 Rerank 无交集，返回 Rerank 结果: %d 个", len(hybrid_results))
+                self.logger.info(
+                    "向量和 Rerank 无交集，返回 Rerank 结果: %d 个", len(hybrid_results)
+                )
         else:
             # 没有 rerank：返回向量检索结果
             hybrid_results = vector_results
@@ -232,7 +255,9 @@ class VectorSearcher:
             for item in hybrid_results:
                 if "rerank_score" not in item:
                     item["rerank_score"] = None
-            self.logger.info("未启用 Rerank，返回向量检索结果: %d 个", len(hybrid_results))
+            self.logger.info(
+                "未启用 Rerank，返回向量检索结果: %d 个", len(hybrid_results)
+            )
 
         return {
             "query": query,
@@ -258,11 +283,16 @@ class VectorSearcher:
         )
 
         if not results:
-            print(f"\n查询: {query}\n没有找到相关结果 (metric={metric}, threshold={threshold})")
+            print(
+                f"\n查询: {query}\n没有找到相关结果 (metric={metric}, threshold={threshold})"
+            )
             return results
 
         print(f"\n查询: {query}")
-        print(f"metric={metric}, threshold={threshold}, 返回 {len(results)} 条\n" + "=" * 100)
+        print(
+            f"metric={metric}, threshold={threshold}, 返回 {len(results)} 条\n"
+            + "=" * 100
+        )
 
         def preview(txt: str, length: int) -> str:
             if not txt:
@@ -271,7 +301,11 @@ class VectorSearcher:
             return (stripped[:length] + "…") if len(stripped) > length else stripped
 
         for idx, row in enumerate(results, start=1):
-            rerank_info = f" rerank={row['rerank_score']:.4f}" if row.get("rerank_score") is not None else ""
+            rerank_info = (
+                f" rerank={row['rerank_score']:.4f}"
+                if row.get("rerank_score") is not None
+                else ""
+            )
             print(
                 f"\n【结果 {idx}】 sim={row['similarity']:.4f}{rerank_info}  dist={row['distance']:.4f}  "
                 f"id={row['id']}  company={row.get('company_name') or '-'}  "
@@ -326,8 +360,11 @@ class VectorSearcher:
             if vec_scores and len(vec_scores) > 1:
                 vec_z = self.rerank_client.zscore_normalize(vec_scores)
                 rerank_z = self.rerank_client.zscore_normalize(
-                    [rerank_scores_dict[str(item["id"])] for item in results[:max_candidates]
-                     if str(item["id"]) in rerank_scores_dict]
+                    [
+                        rerank_scores_dict[str(item["id"])]
+                        for item in results[:max_candidates]
+                        if str(item["id"]) in rerank_scores_dict
+                    ]
                 )
 
                 # 应用融合分数
@@ -337,26 +374,25 @@ class VectorSearcher:
                     if item_id in rerank_scores_dict:
                         item["rerank_score"] = rerank_scores_dict[item_id]
                         item["final_score"] = (
-                            fusion_alpha * vec_z[z_idx] +
-                            (1 - fusion_alpha) * rerank_z[z_idx]
+                            fusion_alpha * vec_z[z_idx]
+                            + (1 - fusion_alpha) * rerank_z[z_idx]
                         )
                         z_idx += 1
 
                 # 按融合分数排序
                 results_with_final = [
-                    item for item in results[:max_candidates]
-                    if "final_score" in item
+                    item for item in results[:max_candidates] if "final_score" in item
                 ]
-                results_without_final = [
-                    item for item in results[max_candidates:]
-                ]
-                results_with_final.sort(key=lambda x: x.get("final_score", float("-inf")), reverse=True)
+                results_without_final = [item for item in results[max_candidates:]]
+                results_with_final.sort(
+                    key=lambda x: x.get("final_score", float("-inf")), reverse=True
+                )
 
                 ordered = results_with_final + results_without_final
                 self.logger.info(
                     "Reranker 已对 %s 条候选进行重排序（融合模式 α=%.2f）",
                     len(results_with_final),
-                    fusion_alpha
+                    fusion_alpha,
                 )
                 return ordered
 

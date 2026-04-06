@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -12,8 +11,8 @@ class HealthResponse(BaseModel):
     status: str = Field(default="healthy", description="服务状态")
     version: str = Field(default=settings.APP_VERSION)
     datetimme: str = Field(
-        default_factory=lambda: datetime.now(
-            ZoneInfo("Asia/Shanghai")
-        ).strftime("%Y-%m-%d, %H:%M:%S %Z"),
-        description="当前时间"
+        default_factory=lambda: datetime.now(ZoneInfo("Asia/Shanghai")).strftime(
+            "%Y-%m-%d, %H:%M:%S %Z"
+        ),
+        description="当前时间",
     )

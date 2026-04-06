@@ -1,15 +1,14 @@
 """
 Database configuration helpers and session utilities.
 """
+
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Dict, Generator, Iterator
+from typing import Generator, Iterator
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.orm import Session, declarative_base
 
-from muscleking.app.config.settings import settings
 
 _DEFAULT_LOG_ECHO = bool(True)
 
@@ -47,7 +46,6 @@ def init_db(*, create_all: bool = False) -> None:
     """
     if create_all:
         # Lazy import to avoid circular dependencies during startup.
-        import muscleking.app.persistence.db.models  
 
         Base.metadata.create_all(bind=engine)
 
@@ -56,7 +54,7 @@ def get_db() -> Generator[Session, None, None]:
     """
     Provide a database session dependency for FastAPI routes.
     """
-    db = SessionLocal() # 得到一个数据库会话
+    db = SessionLocal()  # 得到一个数据库会话
     try:
         yield db
     finally:

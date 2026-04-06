@@ -1,26 +1,39 @@
-
 from __future__ import annotations
 
 import json
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Tuple, Set, Iterable
 from loguru import logger
 from langchain_core.language_models import BaseChatModel
-from muscleking.app.agents.text2sql.components.text2sql_prompt import format_schema_as_text,create_query_analysis_prompt,create_sql_generation_prompt, create_visualization_prompt
-from muscleking.app.agents.text2sql.components.models import SQLAnalysis,VisualizationRecommendation
+from muscleking.app.agents.text2sql.components.text2sql_prompt import (
+    format_schema_as_text,
+    create_query_analysis_prompt,
+    create_sql_generation_prompt,
+    create_visualization_prompt,
+)
+from muscleking.app.agents.text2sql.components.models import (
+    SQLAnalysis,
+    VisualizationRecommendation,
+)
 from muscleking.app.agents.text2sql.components.utils import render_analysis_markdown
 from langchain_core.output_parsers import StrOutputParser
-from .validators import validate_sql_syntax,validate_sql_security
+from .validators import validate_sql_syntax, validate_sql_security
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from muscleking.config import settings
-from muscleking.app.agents.text2sql.components.prompt import COLUMN_DESCRIPTIONS, DOMAIN_SUMMARY, TABLE_DESCRIPTIONS,RELATIONSHIP_FACTS
+from muscleking.app.agents.text2sql.components.prompt import (
+    COLUMN_DESCRIPTIONS,
+    TABLE_DESCRIPTIONS,
+    RELATIONSHIP_FACTS,
+)
 import asyncio
 import re
 
 logger = logger.bind(service="text2sql_node")
 
 
-def create_answer_formatter_node() -> Callable[[Dict[str, Any]], Coroutine[Any, Any, Dict[str, Any]]]:
+def create_answer_formatter_node() -> Callable[
+    [Dict[str, Any]], Coroutine[Any, Any, Dict[str, Any]]
+]:
     """Build a LangGraph node that composes the final answer for the user."""
 
     async def format_answer(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -51,10 +64,16 @@ def create_answer_formatter_node() -> Callable[[Dict[str, Any]], Coroutine[Any, 
                     f"- 类型：{visualization.get('chart_type', 'table')}\n"
                     f"- 标题：{visualization.get('title', '查询结果')}"
                 )
-                config = visualization.get("config") if isinstance(visualization, dict) else None
+                config = (
+                    visualization.get("config")
+                    if isinstance(visualization, dict)
+                    else None
+                )
                 if config:
                     answer_lines.append("```json")
-                    answer_lines.append(json.dumps(config, ensure_ascii=False, indent=2))
+                    answer_lines.append(
+                        json.dumps(config, ensure_ascii=False, indent=2)
+                    )
                     answer_lines.append("```")
             answer = "\n".join(answer_lines).strip()
 
@@ -121,11 +140,10 @@ def create_query_analysis_node(
     return analyze
 
 
-
-
 """
 SQL generation node.
 """
+
 
 def create_sql_generation_node(
     llm: BaseChatModel,
@@ -198,7 +216,6 @@ SQL validation node.
 """
 
 
-
 def create_sql_validation_node(
     db_type: str = "MySQL",
 ) -> Callable[[Dict[str, Any]], Coroutine[Any, Any, Dict[str, Any]]]:
@@ -260,10 +277,10 @@ def create_sql_validation_node(
     return validate_sql
 
 
-
 """
 SQL execution node.
 """
+
 
 def create_sql_execution_node(
     connection_string: Optional[str] = None,
@@ -313,7 +330,9 @@ def create_sql_execution_node(
             }
 
         try:
-            results = await _execute_sql_query(conn_str, sql_statement, max_rows=max_rows)
+            results = await _execute_sql_query(
+                conn_str, sql_statement, max_rows=max_rows
+            )
             logger.info("SQL 执行成功，返回 %d 行结果", len(results))
             return {
                 "execution_results": results,
@@ -368,12 +387,13 @@ def _run_query_sync(
     engine: Engine = create_engine(connection_string, future=True)
     try:
         with engine.connect() as connection:
-            result = connection.execution_options(stream_results=True).execute(text(sql))
+            result = connection.execution_options(stream_results=True).execute(
+                text(sql)
+            )
             columns = list(result.keys())
             rows = result.fetchmany(max_rows)
             return [
-                {column: row[idx] for idx, column in enumerate(columns)}
-                for row in rows
+                {column: row[idx] for idx, column in enumerate(columns)} for row in rows
             ]
     finally:
         engine.dispose()
@@ -397,24 +417,35 @@ def _is_read_only_query(sql: str) -> bool:
     upper = statement.upper()
 
     # 允许的只读关键词
-    readonly_keywords = ['SELECT ', 'WITH ', 'EXPLAIN ', 'SHOW ']
+    readonly_keywords = ["SELECT ", "WITH ", "EXPLAIN ", "SHOW "]
     starts_with_readonly = any(upper.startswith(kw) for kw in readonly_keywords)
 
     # 危险关键词（即使在SELECT中也不允许）
     dangerous_keywords = [
-        'INSERT ', 'UPDATE ', 'DELETE ', 'DROP ', 'CREATE ', 'ALTER ',
-        'TRUNCATE ', 'REPLACE ', 'MERGE ', 'GRANT ', 'REVOKE ', 'EXEC ',
-        'EXECUTE ', 'CALL '
+        "INSERT ",
+        "UPDATE ",
+        "DELETE ",
+        "DROP ",
+        "CREATE ",
+        "ALTER ",
+        "TRUNCATE ",
+        "REPLACE ",
+        "MERGE ",
+        "GRANT ",
+        "REVOKE ",
+        "EXEC ",
+        "EXECUTE ",
+        "CALL ",
     ]
     contains_dangerous = any(kw in upper for kw in dangerous_keywords)
 
     return starts_with_readonly and not contains_dangerous
 
 
-
 """
 Visualization recommendation node.
 """
+
 
 def create_visualization_node(
     llm: BaseChatModel,
@@ -472,9 +503,6 @@ def create_visualization_node(
             }
 
     return recommend
-
-
-
 
 
 """
@@ -624,7 +652,9 @@ async def _retrieve_schema_from_mysql(question: str) -> Dict[str, Any]:
                     table_key = table_name.lower()
 
                     # 使用领域知识库补充描述
-                    table_description = table_comment or TABLE_DESCRIPTIONS.get(table_key) or ""
+                    table_description = (
+                        table_comment or TABLE_DESCRIPTIONS.get(table_key) or ""
+                    )
 
                     # 获取列信息
                     columns_query = text("""
@@ -638,7 +668,9 @@ async def _retrieve_schema_from_mysql(question: str) -> Dict[str, Any]:
                         AND TABLE_NAME = :table_name
                         ORDER BY ORDINAL_POSITION
                     """)
-                    column_rows = conn.execute(columns_query, {"table_name": table_name}).fetchall()
+                    column_rows = conn.execute(
+                        columns_query, {"table_name": table_name}
+                    ).fetchall()
 
                     columns: List[Dict[str, Any]] = []
                     for col_row in column_rows:
@@ -649,22 +681,30 @@ async def _retrieve_schema_from_mysql(question: str) -> Dict[str, Any]:
 
                         # 使用领域知识库补充描述
                         column_desc_key = (table_key, column_name.lower())
-                        column_description = column_comment or COLUMN_DESCRIPTIONS.get(column_desc_key) or ""
+                        column_description = (
+                            column_comment
+                            or COLUMN_DESCRIPTIONS.get(column_desc_key)
+                            or ""
+                        )
 
-                        columns.append({
-                            "column_name": column_name,
-                            "data_type": data_type,
-                            "description": column_description,
-                            "is_primary_key": column_key == "PRI",
-                            "is_foreign_key": column_key in ("MUL", "FK"),
-                            "is_unique": column_key == "UNI",
-                        })
+                        columns.append(
+                            {
+                                "column_name": column_name,
+                                "data_type": data_type,
+                                "description": column_description,
+                                "is_primary_key": column_key == "PRI",
+                                "is_foreign_key": column_key in ("MUL", "FK"),
+                                "is_unique": column_key == "UNI",
+                            }
+                        )
 
-                    tables.append({
-                        "table_name": table_name,
-                        "description": table_description,
-                        "columns": columns,
-                    })
+                    tables.append(
+                        {
+                            "table_name": table_name,
+                            "description": table_description,
+                            "columns": columns,
+                        }
+                    )
 
                 # 获取外键关系
                 fk_query = text("""
@@ -689,21 +729,28 @@ async def _retrieve_schema_from_mysql(question: str) -> Dict[str, Any]:
                         continue
                     seen_keys.add(key)
 
-                    relationships.append({
-                        "source_table": fk_row[0],
-                        "source_column": fk_row[1],
-                        "target_table": fk_row[2],
-                        "target_column": fk_row[3],
-                        "relationship_type": "FOREIGN_KEY",
-                        "description": f"{fk_row[0]}.{fk_row[1]} references {fk_row[2]}.{fk_row[3]}",
-                    })
+                    relationships.append(
+                        {
+                            "source_table": fk_row[0],
+                            "source_column": fk_row[1],
+                            "target_table": fk_row[2],
+                            "target_column": fk_row[3],
+                            "relationship_type": "FOREIGN_KEY",
+                            "description": f"{fk_row[0]}.{fk_row[1]} references {fk_row[2]}.{fk_row[3]}",
+                        }
+                    )
 
                 # 添加领域知识关系
-                table_name_lookup = {t["table_name"].lower(): t["table_name"] for t in tables}
+                table_name_lookup = {
+                    t["table_name"].lower(): t["table_name"] for t in tables
+                }
                 for relationship in RELATIONSHIP_FACTS:
                     source_lower = relationship["source_table"].lower()
                     target_lower = relationship["target_table"].lower()
-                    if source_lower not in table_name_lookup or target_lower not in table_name_lookup:
+                    if (
+                        source_lower not in table_name_lookup
+                        or target_lower not in table_name_lookup
+                    ):
                         continue
 
                     source_name = table_name_lookup[source_lower]
@@ -719,14 +766,18 @@ async def _retrieve_schema_from_mysql(question: str) -> Dict[str, Any]:
                         continue
                     seen_keys.add(key)
 
-                    relationships.append({
-                        "source_table": source_name,
-                        "source_column": relationship["source_column"],
-                        "target_table": target_name,
-                        "target_column": relationship["target_column"],
-                        "relationship_type": relationship.get("relationship_type", ""),
-                        "description": relationship.get("description", ""),
-                    })
+                    relationships.append(
+                        {
+                            "source_table": source_name,
+                            "source_column": relationship["source_column"],
+                            "target_table": target_name,
+                            "target_column": relationship["target_column"],
+                            "relationship_type": relationship.get(
+                                "relationship_type", ""
+                            ),
+                            "description": relationship.get("description", ""),
+                        }
+                    )
 
                 return tables, relationships
         finally:
@@ -748,8 +799,10 @@ async def _retrieve_schema_from_mysql(question: str) -> Dict[str, Any]:
             # 过滤关系，只保留相关表的关系
             table_names = {table["table_name"] for table in tables}
             relationships = [
-                rel for rel in relationships
-                if rel["source_table"] in table_names and rel["target_table"] in table_names
+                rel
+                for rel in relationships
+                if rel["source_table"] in table_names
+                and rel["target_table"] in table_names
             ]
 
     schema_context = {

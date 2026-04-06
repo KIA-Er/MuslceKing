@@ -1,5 +1,4 @@
 import re
-from typing import List, Dict, Any
 from muscleking.app.agents.retrieve.base import BaseCypherExampleRetriever
 from muscleking.app.services.llm_client import LLMClient
 
@@ -12,51 +11,51 @@ class FitnessCypherRetriever(BaseCypherExampleRetriever):
 
     def __init__(self, llm_client: LLMClient = None):
         super().__init__()
-        object.__setattr__(self, '_llm_client', llm_client or LLMClient())
+        object.__setattr__(self, "_llm_client", llm_client or LLMClient())
 
         # 预定义健身 Cypher 示例（用于 few-shot）
         self._predefined_examples = [
             {
                 "question": "深蹲怎么做？",
                 "cypher": """MATCH (e:Exercise {name: '深蹲'})
-RETURN e.description AS 动作说明"""
+RETURN e.description AS 动作说明""",
             },
             {
                 "question": "深蹲是什么难度？",
                 "cypher": """MATCH (e:Exercise {name: '深蹲'})-[:HAS_DIFFICULTY]->(d:Difficulty)
-RETURN d.name AS 难度"""
+RETURN d.name AS 难度""",
             },
             {
                 "question": "引体向上需要什么器械？",
                 "cypher": """MATCH (e:Exercise {name: '引体向上'})-[:USES_EQUIPMENT]->(eq:Equipment)
-RETURN collect(eq.name) AS 器械"""
+RETURN collect(eq.name) AS 器械""",
             },
             {
                 "question": "练胸肌的动作有哪些？",
                 "cypher": """MATCH (e:Exercise)-[:TARGETS_MUSCLE]->(m:Muscle {name: '胸肌'})
-RETURN e.name AS 动作名称 LIMIT 15"""
+RETURN e.name AS 动作名称 LIMIT 15""",
             },
             {
                 "question": "新手适合哪些动作？",
                 "cypher": """MATCH (e:Exercise)-[:HAS_DIFFICULTY]->(d:Difficulty {name: '初级'})
-RETURN e.name AS 动作名称 LIMIT 15"""
+RETURN e.name AS 动作名称 LIMIT 15""",
             },
             {
                 "question": "适合减脂的动作有哪些？",
                 "cypher": """MATCH (e:Exercise)-[:SUPPORTS_GOAL]->(g:TrainingGoal {name: '减脂'})
-RETURN e.name AS 动作名称 LIMIT 15"""
+RETURN e.name AS 动作名称 LIMIT 15""",
             },
             {
                 "question": "深蹲练哪些肌肉？",
                 "cypher": """MATCH (e:Exercise {name: '深蹲'})-[:TARGETS_MUSCLE]->(m:Muscle)
-RETURN m.name AS 肌群"""
+RETURN m.name AS 肌群""",
             },
             {
                 "question": "深蹲的完整动作步骤",
                 "cypher": """MATCH (e:Exercise {name: '深蹲'})-[:HAS_STEP]->(s:ExerciseStep)
 RETURN s.order AS 步骤序号, s.instruction AS 步骤说明
-ORDER BY s.order"""
-            }
+ORDER BY s.order""",
+            },
         ]
 
     # ==================== Prompt ====================
@@ -114,7 +113,7 @@ ORDER BY s.order"""
             response = await self._llm_client.chat(
                 system_prompt="你是一个严格遵循示例的 Neo4j Cypher 生成专家。",
                 user_message=prompt,
-                temperature=0.1
+                temperature=0.1,
             )
 
             cypher = response.strip()
@@ -136,26 +135,29 @@ ORDER BY s.order"""
 
         llm_cypher = await self._generate_cypher_with_llm(query)
         if llm_cypher:
-            selected_examples.append({
-                "question": query,
-                "cypher": llm_cypher
-            })
+            selected_examples.append({"question": query, "cypher": llm_cypher})
 
         selected_examples.extend(self._predefined_examples)
 
         def compute_relevance(example, query_text):
             score = 0
-            q_words = set(re.findall(r'\w+', query_text.lower()))
-            e_words = set(re.findall(r'\w+', example["question"].lower()))
+            q_words = set(re.findall(r"\w+", query_text.lower()))
+            e_words = set(re.findall(r"\w+", example["question"].lower()))
 
             score += len(q_words & e_words) * 2
 
             keywords = {
-                '怎么做': 3, '步骤': 3,
-                '肌肉': 2, '练': 2,
-                '难度': 2, '器械': 2,
-                '风险': 2, '收益': 2,
-                '计划': 2, '减脂': 2, '增肌': 2
+                "怎么做": 3,
+                "步骤": 3,
+                "肌肉": 2,
+                "练": 2,
+                "难度": 2,
+                "器械": 2,
+                "风险": 2,
+                "收益": 2,
+                "计划": 2,
+                "减脂": 2,
+                "增肌": 2,
             }
 
             for k, w in keywords.items():
@@ -183,8 +185,8 @@ ORDER BY s.order"""
 
         def compute_relevance(example, query_text):
             score = 0
-            q_words = set(re.findall(r'\w+', query_text.lower()))
-            e_words = set(re.findall(r'\w+', example["question"].lower()))
+            q_words = set(re.findall(r"\w+", query_text.lower()))
+            e_words = set(re.findall(r"\w+", example["question"].lower()))
             score += len(q_words & e_words) * 2
             return score
 

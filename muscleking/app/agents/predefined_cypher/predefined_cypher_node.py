@@ -6,15 +6,15 @@ from langchain_openai import ChatOpenAI
 
 from muscleking.app.agents.agent_state import PredefinedCypherInputState
 from muscleking.app.agents.agent_state import CypherOutputState
-from muscleking.app.agents.predefined_cypher.predefined_cypher_utils import create_vector_query_matcher
+from muscleking.app.agents.predefined_cypher.predefined_cypher_utils import (
+    create_vector_query_matcher,
+)
 from muscleking.app.agents.predefined_cypher.description import QUERY_DESCRIPTIONS
 from muscleking.app.config.settings import settings
 
 NO_CYPHER_RESULTS = [
     {"error": "I couldn't find any relevant information in the database."}
 ]
-
-
 
 
 def create_predefined_cypher_node(

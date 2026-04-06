@@ -10,16 +10,15 @@ from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
 from muscleking.app.agents.text2sql.text2sql_workflow import create_text2sql_workflow
 from loguru import logger
 from muscleking.app.agents.cyper_tools.cypher_node import CypherQueryOutputState
-from muscleking.app.agents.text2sql.text2sql_workflow import create_text2sql_workflow
 from langchain_openai import ChatOpenAI
 from muscleking.app.config.settings import settings
 
 
-
 logger = logger.bind(service="text2sql")
 
+
 def create_text2sql_tool_node(
-        neo4j_graph=None,
+    neo4j_graph=None,
 ) -> Callable[[Dict[str, Any]], Coroutine[Any, Any, Dict[str, Any]]]:
     """
     Create a LangGraph node that executes the Text2SQL workflow.
@@ -33,7 +32,7 @@ def create_text2sql_tool_node(
 
     async def text2sql_query(state: Dict[str, Any]) -> Dict[str, Any]:
         question = state.get("task") or state.get("question") or ""
-        tool_args: Dict[str, Any] = state.get("query_parameters",{}) or {}
+        tool_args: Dict[str, Any] = state.get("query_parameters", {}) or {}
 
         connection_id = tool_args.get("connection_id")
         db_type = tool_args.get("db_type") or "MySQL"
@@ -41,7 +40,7 @@ def create_text2sql_tool_node(
         connection_string = tool_args.get("connection_string")
         max_retries = int(tool_args.get("max_retries") or 3)
 
-        errors:List[str] = []
+        errors: List[str] = []
 
         graph = neo4j_graph
         if graph is None and get_neo4j_graph is not None:
@@ -52,12 +51,12 @@ def create_text2sql_tool_node(
                 logger.error("Failed to obtain Neo4j graph connection: %s", e)
                 errors.append(f"无法连接图数据库: {e}")
                 graph = None
-        
-        #neo4j链接失败兜底机制
 
-        #若LLMAPI无效，兜底机制
+        # neo4j链接失败兜底机制
 
-        #大模型初始化
+        # 若LLMAPI无效，兜底机制
+
+        # 大模型初始化
 
         text2sql_llm = ChatOpenAI(
             api_key=settings.LLM_API_KEY,
@@ -66,7 +65,7 @@ def create_text2sql_tool_node(
             temperature=0.0,
             tags=["text2sql"],
         )
-        #workflow搭建
+        # workflow搭建
         workflow = create_text2sql_workflow(
             llm=text2sql_llm,
             neo4j_graph=graph,
@@ -75,7 +74,7 @@ def create_text2sql_tool_node(
             max_retries=max_retries,
         )
 
-        #input_state定义
+        # input_state定义
         input_state = {
             "question": question,
             "connection_id": connection_id,
@@ -83,7 +82,7 @@ def create_text2sql_tool_node(
             "max_retries": max_retries,
             "max_rows": max_rows,
         }
-        #workflow执行
+        # workflow执行
         try:
             result: Dict[str, Any] = await workflow.ainvoke(input_state)
         except Exception as exc:  # pragma: no cover - defensive logging
@@ -113,7 +112,7 @@ def create_text2sql_tool_node(
         }
         if viz_config:
             records_payload["visualization_config"] = viz_config
-        #查询结果映射与payload(负载)构造
+        # 查询结果映射与payload(负载)构造
         return {
             "cyphers": [
                 CypherQueryOutputState(
@@ -128,5 +127,5 @@ def create_text2sql_tool_node(
             ],
             "steps": ["execute_text2sql_query"],
         }
-    
+
     return text2sql_query

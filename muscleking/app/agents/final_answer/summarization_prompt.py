@@ -1,7 +1,6 @@
 from langchain_core.prompts import ChatPromptTemplate
 
 
-
 def create_summarization_prompt_template() -> ChatPromptTemplate:
     """
     Create a prompt template tailored for summarising fitness knowledge.

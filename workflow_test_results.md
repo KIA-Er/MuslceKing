@@ -41,11 +41,11 @@ START → guardrails → [planner|end] → tool_selection → [各工具节点] 
 ### ✅ Guardrails节点（已实现）
 - **功能**: 安全护栏，敏感内容过滤、权限/配额校验
 - **输入**: 用户问题
-- **输出**: 
+- **输出**:
   - `next_action`: "planner" 或 "end"
   - `summary`: 拒绝原因（如果拒绝）
   - `steps`: 执行步骤记录
-- **逻辑**: 
+- **逻辑**:
   - 基于健身关键词启发式判断
   - 支持LLM语义判断
   - 健身相关问题进入planner，非健身问题直接结束
@@ -67,7 +67,7 @@ START → guardrails → [planner|end] → tool_selection → [各工具节点] 
 - 需要实现 `create_cypher_query_node()` 函数
 - 负责动态生成Cypher查询语句
 
-### ⏳ 预定义Cypher节点  
+### ⏳ 预定义Cypher节点
 - 需要实现 `create_predefined_cypher_node()` 函数
 - 负责执行预定义的Cypher查询模板
 

@@ -5,7 +5,6 @@ from typing import List, Literal
 from langgraph.types import Send
 
 from muscleking.app.agents.agent_state import OverallState, ToolSelectionOutputState
-from muscleking.app.agents.cyper_tools.cypher_utils import CypherOutputState
 
 
 def guardrails_conditional_edge(
@@ -91,4 +90,3 @@ def tool_selection_output_router(state: ToolSelectionOutputState) -> Send:
             return Send("final_answer", dict())
         case _:
             return Send("final_answer", dict())
-

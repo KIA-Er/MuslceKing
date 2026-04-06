@@ -11,6 +11,7 @@ implemented as LangGraph nodes:
 6. Visualization recommendation
 7. Answer formatting
 """
+
 from __future__ import annotations
 
 from typing import Literal
@@ -92,7 +93,9 @@ def create_text2sql_workflow(
     return compiled_graph
 
 
-def _should_execute_or_retry(state: Text2SQLState) -> Literal["execute", "retry", "end"]:
+def _should_execute_or_retry(
+    state: Text2SQLState,
+) -> Literal["execute", "retry", "end"]:
     """
     Decide whether to execute the SQL, retry generation, or end the workflow.
     """

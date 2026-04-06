@@ -6,7 +6,6 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 def create_text2cypher_generation_prompt_template() -> ChatPromptTemplate:
-
     """
     Create a Text2Cypher generation prompt template.
 
@@ -43,6 +42,7 @@ def create_text2cypher_generation_prompt_template() -> ChatPromptTemplate:
             ),
         ]
     )
+
 
 def create_text2cypher_validation_prompt_template() -> ChatPromptTemplate:
     """
@@ -92,6 +92,7 @@ def create_text2cypher_validation_prompt_template() -> ChatPromptTemplate:
             ),
         ]
     )
+
 
 def create_text2cypher_correction_prompt_template() -> ChatPromptTemplate:
     """

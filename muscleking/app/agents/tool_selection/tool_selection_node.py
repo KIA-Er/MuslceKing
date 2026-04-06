@@ -50,7 +50,9 @@ SQL_KEYWORDS = [
     "update",
     "delete",
 ]
-SQL_PATTERN = re.compile(r"\b(select|count|sum|avg|max|min|group\s+by|order\s+by)\b", re.IGNORECASE)
+SQL_PATTERN = re.compile(
+    r"\b(select|count|sum|avg|max|min|group\s+by|order\s+by)\b", re.IGNORECASE
+)
 
 DESCRIPTIVE_KEYWORDS = [
     "训练",
@@ -69,7 +71,6 @@ DESCRIPTIVE_KEYWORDS = [
     "姿势",
     "注意事项",
 ]
-
 
 
 def _looks_like_sql_question(question: str) -> bool:
@@ -105,7 +106,9 @@ def create_tool_selection_node(
 
     async def tool_selection(
         state: ToolSelectionInputState,
-    ) -> Command[Literal["cypher_query", "predefined_cypher", "customer_tools", "text2sql_query"]]:
+    ) -> Command[
+        Literal["cypher_query", "predefined_cypher", "customer_tools", "text2sql_query"]
+    ]:
         """
         Choose the appropriate tool for the given task.
         """
@@ -136,7 +139,9 @@ def create_tool_selection_node(
             )
 
         if _looks_like_sql_question(question_text) and route_type == "text2sql-query":
-            logger.info("Detect text2sql intent via route_type/keywords，直接调用 Text2SQL 工具。")
+            logger.info(
+                "Detect text2sql intent via route_type/keywords，直接调用 Text2SQL 工具。"
+            )
             return _make_command(
                 "text2sql_query",
                 {
@@ -161,7 +166,9 @@ def create_tool_selection_node(
         #     )
 
         go_to_text2cypher: Command[
-            Literal["cypher_query", "predefined_cypher", "customer_tools", "text2sql_query"]
+            Literal[
+                "cypher_query", "predefined_cypher", "customer_tools", "text2sql_query"
+            ]
         ] = Command(
             goto=Send(
                 "cypher_query",
@@ -232,9 +239,7 @@ def create_tool_selection_node(
             "error_tool_selection",
             {
                 "task": question_text,
-                "errors": [
-                    f"Unable to assign tool to question: `{question_text}`"
-                ],
+                "errors": [f"Unable to assign tool to question: `{question_text}`"],
                 "steps": ["tool_selection"],
             },
         )
