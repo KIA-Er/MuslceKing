@@ -12,7 +12,7 @@ from loguru import logger
 from muscleking.app.agents.cyper_tools.cypher_node import CypherQueryOutputState
 from muscleking.app.agents.text2sql.text2sql_workflow import create_text2sql_workflow
 from langchain_openai import ChatOpenAI
-from muscleking.config.settings import settings
+from muscleking.app.config.settings import settings
 
 
 

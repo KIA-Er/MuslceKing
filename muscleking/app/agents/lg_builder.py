@@ -8,7 +8,7 @@ from loguru import logger
 from muscleking.app.agents.models.model_lg_state import AdditionalGuardrailsOutput
 from dataclasses import dataclass, field
 from muscleking.app.agents.models.model_lg_state import AgentState, InputState, Router, GradeHallucinations
-from muscleking.app.agents.lg_prompts import (ROUTER_SYSTEM_PROMPT,GENERAL_QUERY_SYSTEM_PROMPT,GUARDRAILS_SYSTEM_PROMPT,GET_ADDITIONAL_SYSTEM_PROMPT)
+# from muscleking.app.agents.lg_prompts import (ROUTER_SYSTEM_PROMPT,GENERAL_QUERY_SYSTEM_PROMPT,GUARDRAILS_SYSTEM_PROMPT,GET_ADDITIONAL_SYSTEM_PROMPT)
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from muscleking.config import settings

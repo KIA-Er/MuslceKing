@@ -19,7 +19,7 @@ from datetime import datetime
 from muscleking.app.persistence.core.database import get_db, init_db
 from muscleking.app.persistence.db.models.chat_session import ChatSession
 from muscleking.app.persistence.db.models.chat_message import ChatMessage
-from muscleking.config.settings import settings
+from muscleking.app.config.settings import settings
 
 # 请求和响应模型
 class ChatRequest(BaseModel):

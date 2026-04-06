@@ -21,7 +21,7 @@ load_dotenv(env_path)
 
 from pydantic import BaseModel
 from langchain_openai import ChatOpenAI
-from muscleking.config.settings import settings
+from muscleking.app.config.settings import settings
 
 # 导入工作流创建函数
 from muscleking.app.agents.multi_agent.multi_tools import create_multi_tool_workflow

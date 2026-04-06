@@ -9,9 +9,9 @@ from sqlalchemy.orm import Session
 from muscleking.app.services.service_chat import get_or_create_session, save_message, process_agent_query
 from muscleking.app.persistence.core.database import get_db
 
-router = APIRouter()
+router = APIRouter(tags=["Unified Chat"])
 
-@router.post("/",response_model=ChatResponse)
+@router.post("/chat",response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
     db: Session = Depends(get_db)  # 使用数据库会话依赖

@@ -24,7 +24,7 @@ print(f"LLM_API_KEY: {'已配置' if os.getenv('LLM_API_KEY') else '未配置'}"
 from typing import Optional, List
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI
-from muscleking.config.settings import settings
+from muscleking.app.config.settings import settings
 
 
 async def test_individual_nodes():

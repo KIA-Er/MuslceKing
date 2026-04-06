@@ -30,7 +30,7 @@ except ImportError:  # pragma: no cover - optional dependency
         return _missing_lighttrag(*args, **kwargs)
 
 # 导入配置
-from muscleking.config.settings import settings
+from muscleking.app.config.settings import settings
 from loguru import logger
 
 logger = logger.bind(service="lightrag-node")

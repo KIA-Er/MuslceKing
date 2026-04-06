@@ -9,31 +9,32 @@ from typing import Dict, Generator, Iterator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
-from muscleking.config.settings import settings
+from muscleking.app.config.settings import settings
 
 _DEFAULT_LOG_ECHO = bool(True)
 
-_connect_args: Dict[str, bool] = {}
-if settings.DATABASE_URL.startswith("sqlite"):
-    _connect_args = {"check_same_thread": False}
+# TODO:重构database操作
+# _connect_args: Dict[str, bool] = {}
+# if settings.DATABASE_URL.startswith("sqlite"):
+#     _connect_args = {"check_same_thread": False}
 
-# 数据库引擎
-engine = create_engine(
-    settings.DATABASE_URL,
-    echo=_DEFAULT_LOG_ECHO,
-    future=True,
-    pool_pre_ping=True,
-    connect_args=_connect_args,
-)
+# # 数据库引擎
+# engine = create_engine(
+#     settings.DATABASE_URL,
+#     echo=_DEFAULT_LOG_ECHO,
+#     future=True,
+#     pool_pre_ping=True,
+#     connect_args=_connect_args,
+# )
 
-# 会话工厂
-SessionLocal = sessionmaker(
-    bind=engine,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False,
-    class_=Session,
-)
+# # 会话工厂
+# SessionLocal = sessionmaker(
+#     bind=engine,
+#     autocommit=False,
+#     autoflush=False,
+#     expire_on_commit=False,
+#     class_=Session,
+# )
 
 Base = declarative_base()
 

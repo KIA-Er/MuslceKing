@@ -33,7 +33,7 @@ sys.path.insert(0, str(scripts_parent))
 
 # Neo4j 连接配置 - 如果 settings 不可用则使用默认值
 try:
-    from muscleking.config.settings import settings
+    from muscleking.app.config.settings import settings
     NEO4J_URI = getattr(settings, 'NEO4J_URI', 'bolt://localhost:7687')
     NEO4J_USER = getattr(settings, 'NEO4J_USER', 'neo4j')
     NEO4J_PASSWORD = getattr(settings, 'NEO4J_PASSWORD', 'muscleking')
