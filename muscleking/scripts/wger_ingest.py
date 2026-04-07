@@ -12,12 +12,12 @@ WGER 提供的 API:
 使用方法:
     python scripts/wger_ingest.py [--limit N] [--batch-size N] [--clear]
 """
+
 import asyncio
 import argparse
-import json
 import re
 import aiohttp
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, List, Optional
 from pathlib import Path
 from loguru import logger
 import sys
@@ -33,16 +33,17 @@ sys.path.insert(0, str(scripts_parent))
 
 # Neo4j 连接配置 - 如果 settings 不可用则使用默认值
 try:
-    from muscleking.config.settings import settings
-    NEO4J_URI = getattr(settings, 'NEO4J_URI', 'bolt://localhost:7687')
-    NEO4J_USER = getattr(settings, 'NEO4J_USER', 'neo4j')
-    NEO4J_PASSWORD = getattr(settings, 'NEO4J_PASSWORD', 'muscleking')
-    NEO4J_DATABASE = getattr(settings, 'NEO4J_DATABASE', 'neo4j')
+    from muscleking.app.config.settings import settings
+
+    NEO4J_URI = getattr(settings, "NEO4J_URI", "bolt://localhost:7687")
+    NEO4J_USER = getattr(settings, "NEO4J_USER", "neo4j")
+    NEO4J_PASSWORD = getattr(settings, "NEO4J_PASSWORD", "muscleking")
+    NEO4J_DATABASE = getattr(settings, "NEO4J_DATABASE", "neo4j")
 except ImportError:
-    NEO4J_URI = 'bolt://localhost:7687'
-    NEO4J_USER = 'neo4j'
-    NEO4J_PASSWORD = 'muscleking'
-    NEO4J_DATABASE = 'neo4j'
+    NEO4J_URI = "bolt://localhost:7687"
+    NEO4J_USER = "neo4j"
+    NEO4J_PASSWORD = "muscleking"
+    NEO4J_DATABASE = "neo4j"
 
 from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
 
@@ -71,7 +72,7 @@ class WGERIngester:
     async def fetch_all_data(self) -> Dict[str, List[Dict]]:
         """获取 WGER 的所有基础数据"""
         logger.info("正在从 WGER 获取数据...")
-        
+
         async with aiohttp.ClientSession() as session:
             tasks = [
                 self._fetch_data(session, WGER_API_MUSCLES, "muscles"),
@@ -79,26 +80,28 @@ class WGERIngester:
                 self._fetch_data(session, WGER_API_CATEGORIES, "categories"),
                 self._fetch_exercises(session),
             ]
-            
+
             results = await asyncio.gather(*tasks, return_exceptions=True)
-            
+
             data = {
                 "muscles": [],
                 "equipment": [],
                 "categories": [],
                 "exercises": [],
             }
-            
+
             for i, result in enumerate(results):
                 if isinstance(result, Exception):
                     logger.warning(f"获取数据失败: {result}")
                 else:
                     key = list(data.keys())[i]
                     data[key] = result
-            
+
             total = len(data["exercises"])
-            logger.info(f"获取到 {total} 个训练动作, {len(data['muscles'])} 个肌群, {len(data['equipment'])} 个器械")
-            
+            logger.info(
+                f"获取到 {total} 个训练动作, {len(data['muscles'])} 个肌群, {len(data['equipment'])} 个器械"
+            )
+
             return data
 
     async def _fetch_data(
@@ -111,18 +114,20 @@ class WGERIngester:
                 if response.status != 200:
                     logger.warning(f"API 请求失败 {url}: {response.status}")
                     return []
-                
+
                 data = await response.json()
                 return data.get("results", [])
         except Exception as e:
             logger.error(f"获取 {key} 数据失败: {e}")
             return []
 
-    async def _fetch_exercises(self, session: aiohttp.ClientSession) -> List[Dict[str, Any]]:
+    async def _fetch_exercises(
+        self, session: aiohttp.ClientSession
+    ) -> List[Dict[str, Any]]:
         """获取所有练习数据"""
         all_exercises = []
         offset = 0
-        
+
         while True:
             try:
                 params = {"limit": 100, "offset": offset}
@@ -130,72 +135,74 @@ class WGERIngester:
                     if response.status != 200:
                         logger.warning(f"获取练习数据失败: {response.status}")
                         break
-                    
+
                     data = await response.json()
                     exercises = data.get("results", [])
-                    
+
                     if not exercises:
                         break
-                    
+
                     all_exercises.extend(exercises)
                     logger.info(f"已获取 {len(all_exercises)} 个练习...")
-                    
+
                     if self.limit and len(all_exercises) >= self.limit:
-                        all_exercises = all_exercises[:self.limit]
+                        all_exercises = all_exercises[: self.limit]
                         break
-                    
+
                     if len(exercises) < 100:
                         break
-                    
+
                     offset += 100
-                    
+
             except Exception as e:
                 logger.error(f"获取练习数据失败: {e}")
                 break
-        
+
         return all_exercises
 
     def clean_html(self, html: str) -> str:
         """清除 HTML 标签，提取纯文本"""
         if not html:
             return ""
-        
+
         # 移除 HTML 标签
-        text = re.sub(r'<[^>]+>', '', html)
+        text = re.sub(r"<[^>]+>", "", html)
         # 替换 HTML 实体
-        text = text.replace('&nbsp;', ' ')
-        text = text.replace('&', '&')
-        text = text.replace('<', '<')
-        text = text.replace('>>')
+        text = text.replace("&nbsp;", " ")
+        text = text.replace("&", "&")
+        text = text.replace("<", "<")
+        text = text.replace(">>")
         text = text.replace('"', '"')
         # 清理多余空白
-        text = re.sub(r'\s+', ' ', text).strip()
-        
+        text = re.sub(r"\s+", " ", text).strip()
+
         return text
 
     async def create_graph_nodes_and_relationships(self, data: Dict[str, List[Dict]]):
         """构建知识图谱"""
         logger.info("开始构建知识图谱...")
-        
+
         # 先创建基础数据
         await self._create_muscles(data.get("muscles", []))
         await self._create_equipment(data.get("equipment", []))
         await self._create_categories(data.get("categories", []))
-        
+
         # 创建练习及其关系
         exercises = data.get("exercises", [])
         total = len(exercises)
-        
+
         for i, exercise in enumerate(exercises):
             try:
                 await self._create_exercise(exercise)
-                
+
                 if (i + 1) % self.batch_size == 0:
-                    logger.info(f"进度: {i + 1}/{total} ({100*(i+1)//total}%)")
-                    
+                    logger.info(f"进度: {i + 1}/{total} ({100 * (i + 1) // total}%)")
+
             except Exception as e:
-                logger.warning(f"创建练习失败: {exercise.get('name', 'Unknown')}, 错误: {e}")
-        
+                logger.warning(
+                    f"创建练习失败: {exercise.get('name', 'Unknown')}, 错误: {e}"
+                )
+
         logger.info(f"知识图谱构建完成！共处理 {total} 个练习")
 
     async def _create_muscles(self, muscles: List[Dict[str, Any]]):
@@ -208,12 +215,15 @@ class WGERIngester:
                         m.name_en = $name_en,
                         m.is_front = $is_front
                 """
-                self.neo4j_graph.query(cypher, params={
-                    "id": muscle.get("id"),
-                    "name": muscle.get("name", ""),
-                    "name_en": muscle.get("name_en", ""),
-                    "is_front": muscle.get("is_front", False),
-                })
+                self.neo4j_graph.query(
+                    cypher,
+                    params={
+                        "id": muscle.get("id"),
+                        "name": muscle.get("name", ""),
+                        "name_en": muscle.get("name_en", ""),
+                        "is_front": muscle.get("is_front", False),
+                    },
+                )
             except Exception as e:
                 logger.debug(f"创建肌群失败: {e}")
 
@@ -225,10 +235,13 @@ class WGERIngester:
                     MERGE (eq:Equipment {id: $id})
                     SET eq.name = $name
                 """
-                self.neo4j_graph.query(cypher, params={
-                    "id": equip.get("id"),
-                    "name": equip.get("name", ""),
-                })
+                self.neo4j_graph.query(
+                    cypher,
+                    params={
+                        "id": equip.get("id"),
+                        "name": equip.get("name", ""),
+                    },
+                )
             except Exception as e:
                 logger.debug(f"创建器械失败: {e}")
 
@@ -240,10 +253,13 @@ class WGERIngester:
                     MERGE (c:Category {id: $id})
                     SET c.name = $name
                 """
-                self.neo4j_graph.query(cypher, params={
-                    "id": category.get("id"),
-                    "name": category.get("name", ""),
-                })
+                self.neo4j_graph.query(
+                    cypher,
+                    params={
+                        "id": category.get("id"),
+                        "name": category.get("name", ""),
+                    },
+                )
             except Exception as e:
                 logger.debug(f"创建类别失败: {e}")
 
@@ -252,7 +268,7 @@ class WGERIngester:
         exercise_id = exercise.get("id")
         name = exercise.get("name", "")
         description = self.clean_html(exercise.get("description", ""))
-        
+
         # 创建练习节点
         cypher = """
             MERGE (e:Exercise {id: $id})
@@ -262,15 +278,18 @@ class WGERIngester:
                 e.created = $created,
                 e.updated = $updated
         """
-        self.neo4j_graph.query(cypher, params={
-            "id": exercise_id,
-            "name": name,
-            "description": description[:2000],
-            "uuid": exercise.get("uuid", ""),
-            "created": exercise.get("created", ""),
-            "updated": exercise.get("updated", ""),
-        })
-        
+        self.neo4j_graph.query(
+            cypher,
+            params={
+                "id": exercise_id,
+                "name": name,
+                "description": description[:2000],
+                "uuid": exercise.get("uuid", ""),
+                "created": exercise.get("created", ""),
+                "updated": exercise.get("updated", ""),
+            },
+        )
+
         # 主肌群关系
         muscles = exercise.get("muscles", [])
         for muscle in muscles:
@@ -280,13 +299,16 @@ class WGERIngester:
                 MERGE (e)-[:TARGETS_MUSCLE {is_main: true}]->(m)
             """
             try:
-                self.neo4j_graph.query(cypher, params={
-                    "exercise_id": exercise_id,
-                    "muscle_id": muscle.get("id"),
-                })
+                self.neo4j_graph.query(
+                    cypher,
+                    params={
+                        "exercise_id": exercise_id,
+                        "muscle_id": muscle.get("id"),
+                    },
+                )
             except Exception:
                 pass
-        
+
         # 次要肌群关系
         muscles_secondary = exercise.get("muscles_secondary", [])
         for muscle in muscles_secondary:
@@ -296,13 +318,16 @@ class WGERIngester:
                 MERGE (e)-[:TARGETS_MUSCLE {is_main: false}]->(m)
             """
             try:
-                self.neo4j_graph.query(cypher, params={
-                    "exercise_id": exercise_id,
-                    "muscle_id": muscle.get("id"),
-                })
+                self.neo4j_graph.query(
+                    cypher,
+                    params={
+                        "exercise_id": exercise_id,
+                        "muscle_id": muscle.get("id"),
+                    },
+                )
             except Exception:
                 pass
-        
+
         # 器械关系
         equipment = exercise.get("equipment", [])
         for equip in equipment:
@@ -312,13 +337,16 @@ class WGERIngester:
                 MERGE (e)-[:USES_EQUIPMENT]->(eq)
             """
             try:
-                self.neo4j_graph.query(cypher, params={
-                    "exercise_id": exercise_id,
-                    "equip_id": equip.get("id"),
-                })
+                self.neo4j_graph.query(
+                    cypher,
+                    params={
+                        "exercise_id": exercise_id,
+                        "equip_id": equip.get("id"),
+                    },
+                )
             except Exception:
                 pass
-        
+
         # 类别关系
         category = exercise.get("category")
         if category:
@@ -328,10 +356,13 @@ class WGERIngester:
                 MERGE (e)-[:BELONGS_TO_CATEGORY]->(c)
             """
             try:
-                self.neo4j_graph.query(cypher, params={
-                    "exercise_id": exercise_id,
-                    "category_id": category.get("id"),
-                })
+                self.neo4j_graph.query(
+                    cypher,
+                    params={
+                        "exercise_id": exercise_id,
+                        "category_id": category.get("id"),
+                    },
+                )
             except Exception:
                 pass
 
@@ -344,19 +375,19 @@ class WGERIngester:
             "CREATE CONSTRAINT IF NOT EXISTS category_id ON (c:Category) ASSERT c.id IS UNIQUE",
             "CREATE CONSTRAINT IF NOT EXISTS exercise_uuid ON (e:Exercise) ASSERT e.uuid IS UNIQUE",
         ]
-        
+
         for constraint in constraints:
             try:
                 self.neo4j_graph.query(constraint)
             except Exception as e:
                 logger.debug(f"创建约束失败 (可能已存在): {e}")
-        
+
         logger.info("基础约束创建完成")
 
     async def clear_existing_data(self):
         """清空现有数据"""
         logger.warning("清空现有数据...")
-        
+
         queries = [
             "MATCH (e:Exercise)-[r]-() DELETE r",
             "MATCH (e:Exercise) DELETE e",
@@ -364,19 +395,19 @@ class WGERIngester:
             "MATCH (eq:Equipment) DELETE eq",
             "MATCH (c:Category) DELETE c",
         ]
-        
+
         for query in queries:
             try:
                 self.neo4j_graph.query(query)
             except Exception as e:
                 logger.debug(f"清空数据时出错: {e}")
-        
+
         logger.info("数据清空完成")
 
     def verify_graph(self) -> Dict[str, int]:
         """验证知识图谱"""
         stats = {}
-        
+
         queries = [
             ("exercises", "MATCH (e:Exercise) RETURN count(e) as count"),
             ("muscles", "MATCH (m:Muscle) RETURN count(m) as count"),
@@ -384,7 +415,7 @@ class WGERIngester:
             ("categories", "MATCH (c:Category) RETURN count(c) as count"),
             ("relationships", "MATCH ()-[r]->() RETURN count(r) as count"),
         ]
-        
+
         for name, query in queries:
             try:
                 result = self.neo4j_graph.query(query)
@@ -392,7 +423,7 @@ class WGERIngester:
             except Exception as e:
                 logger.error(f"查询统计失败 {name}: {e}")
                 stats[name] = -1
-        
+
         return stats
 
 
@@ -403,46 +434,51 @@ async def main():
     parser.add_argument("--batch-size", type=int, default=50, help="批量处理大小")
     parser.add_argument("--clear", action="store_true", help="清空现有数据后导入")
     parser.add_argument("--verify", action="store_true", help="验证图谱统计信息")
-    
+
     args = parser.parse_args()
-    
+
     # 配置日志
     logger.remove()
-    logger.add(sys.stdout, level="INFO", format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{message}</cyan>")
-    
+    logger.add(
+        sys.stdout,
+        level="INFO",
+        format="<green>{time:HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{message}</cyan>",
+    )
+
     try:
         # 获取 Neo4j 连接
         neo4j_graph = get_neo4j_graph()
         logger.info(f"成功连接到 Neo4j: {settings.NEO4J_URI}")
-        
+
         # 创建导入器
         ingester = WGERIngester(
             neo4j_graph=neo4j_graph,
             limit=args.limit,
             batch_size=args.batch_size,
         )
-        
+
         if args.clear:
             await ingester.clear_existing_data()
-        
+
         # 创建约束
         await ingester._create_constraints()
-        
+
         # 获取并导入数据
         data = await ingester.fetch_all_data()
         await ingester.create_graph_nodes_and_relationships(data)
-        
+
         if args.verify:
             stats = ingester.verify_graph()
             logger.info("图谱统计信息:")
             for key, value in stats.items():
                 logger.info(f"  - {key}: {value}")
-        
+
         logger.info("✅ WGER 数据导入完成！")
-        
+
     except Exception as e:
         logger.error(f"导入失败: {e}")
         import traceback
+
         traceback.print_exc()
         sys.exit(1)
 

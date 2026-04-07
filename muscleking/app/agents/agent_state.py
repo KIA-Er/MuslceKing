@@ -77,6 +77,7 @@ class Task(BaseModel):
         )
         return viz_bool and self.data is not None
 
+
 class InputState(TypedDict, total=False):
     """The input state for multi agent workflows."""
 
@@ -131,6 +132,7 @@ class PredefinedCypherInputState(TypedDict):
 
 class ToolSelectionInputState(TypedDict):
     """The input state for the Tool Selection node."""
+
     question: str
     parent_task: str
     context: Any
@@ -144,11 +146,7 @@ class ToolSelectionOutputState(TypedDict):
 
 class ToolSelectionErrorState(TypedDict):
     """The input state to the tool selection error handling node."""
+
     task: str
     errors: List[str]
     steps: List[str]
-
-
-
-    
-

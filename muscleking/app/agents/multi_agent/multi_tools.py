@@ -23,34 +23,41 @@ from muscleking.app.agents.agent_state import (
     OutputState,
     OverallState,
 )
+
 # 导入guardrails逻辑
 from muscleking.app.agents.guardrails.guardrails_node import create_guardrails_node
+
 # 导入分解节点
 from muscleking.app.agents.planner.planner_node import create_planner_node
+
 # 导入工具选择节点
-from muscleking.app.agents.tool_selection.tool_selection_node import create_tool_selection_node
+from muscleking.app.agents.tool_selection.tool_selection_node import (
+    create_tool_selection_node,
+)
+
 # 导入 text2cypher 节点
 from muscleking.app.agents.cyper_tools.cypher_node import create_cypher_query_node
+
 # 导入Cypher示例检索器基类
 from muscleking.app.agents.retrieve.base import BaseCypherExampleRetriever
+
 # 导入预定义Cypher节点
-from muscleking.app.agents.predefined_cypher.predefined_cypher_node import create_predefined_cypher_node
+from muscleking.app.agents.predefined_cypher.predefined_cypher_node import (
+    create_predefined_cypher_node,
+)
+
 # 导入自定义工具函数节点
 from muscleking.app.agents.customer.customer_node import create_graphrag_query_node
 from muscleking.app.agents.text2sql.text2sql_tool import create_text2sql_tool_node
 
-from muscleking.config import settings
-from loguru import logger
+from muscleking.app.config import settings
 from muscleking.app.services.knowledge_base_service import KnowledgeBaseService
-
 
 
 from muscleking.app.agents.final_answer.final_answer import create_final_answer_node
 
 
-
 from muscleking.app.agents.final_answer.summarize import create_summarization_node
-
 
 
 from muscleking.app.agents.multi_agent.edge import (
@@ -62,7 +69,7 @@ from muscleking.app.agents.multi_agent.edge import (
 # from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.customer_tools import create_graphrag_query_node
 # from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.text2cypher.text2sql_tool import create_text2sql_tool_node
 
-# from muscleking.config import settings
+# from muscleking.app.config import settings
 # from gustobot.infrastructure.core.logger import get_logger
 # from gustobot.infrastructure.knowledge import KnowledgeService
 
@@ -71,9 +78,7 @@ from muscleking.app.agents.multi_agent.edge import (
 # from ...components.final_answer import create_final_answer_node
 
 
-
 # from ...components.summarize import create_summarization_node
-
 
 
 # from .edges import (
@@ -82,13 +87,16 @@ from muscleking.app.agents.multi_agent.edge import (
 # )
 
 from dataclasses import dataclass, field
+
+
 # 强制要求数据类中的所有字段必须以关键字参数的形式提供。即不能以位置参数的方式传递。
 @dataclass(kw_only=True)
 class AgentState(InputState):
     """The router's classification of the user's query."""
+
     steps: list[str] = field(default_factory=list)
     """Populated by the retriever. This is a list of documents that the agent can reference."""
-    question: str = field(default_factory=str) # 这个参数用来与子图进行交互
+    question: str = field(default_factory=str)  # 这个参数用来与子图进行交互
     answer: str = field(default_factory=str)  # 这个参数用来与子图进行交互
 
 
@@ -153,9 +161,9 @@ def create_multi_tool_workflow(
 
     predefined_cypher = create_predefined_cypher_node(
         graph=graph, predefined_cypher_dict=predefined_cypher_dict
-    ) #预定义的自定Cypher查询语句
+    )  # 预定义的自定Cypher查询语句
 
-    customer_tools = create_graphrag_query_node() # lightrag_query
+    customer_tools = create_graphrag_query_node()  # lightrag_query
     text2sql_query = create_text2sql_tool_node(graph)
 
     # 工具选择节点，根据用户的问题选择合适的工具
@@ -171,27 +179,32 @@ def create_multi_tool_workflow(
     # 创建状态图运行时会维护一个“全局状态”（OverallState），入口状态类型是 InputState，最终产出是 OutputState。节点函数读写的就是这个状态。
     main_graph_builder = StateGraph(OverallState, input=InputState, output=OutputState)
 
-    main_graph_builder.add_node(guardrails)# 安全护栏敏感内容过滤、权限/配额校验
-    main_graph_builder.add_node(planner) #决定下一步要用的工具/路径。
-    main_graph_builder.add_node("cypher_query", cypher_query)#命名 "cypher_query" 的节点，执行 cypher_query 函数（通常是对图数据库生成/执行 Cypher）。
-    main_graph_builder.add_node(predefined_cypher) #预设查询（当无需动态生成时）。
-    main_graph_builder.add_node("customer_tools", customer_tools) #lightrag_query
+    main_graph_builder.add_node(guardrails)  # 安全护栏敏感内容过滤、权限/配额校验
+    main_graph_builder.add_node(planner)  # 决定下一步要用的工具/路径。
+    main_graph_builder.add_node(
+        "cypher_query", cypher_query
+    )  # 命名 "cypher_query" 的节点，执行 cypher_query 函数（通常是对图数据库生成/执行 Cypher）。
+    main_graph_builder.add_node(predefined_cypher)  # 预设查询（当无需动态生成时）。
+    main_graph_builder.add_node("customer_tools", customer_tools)  # lightrag_query
     main_graph_builder.add_node("text2sql_query", text2sql_query)
-    main_graph_builder.add_node(summarize) # 总结
-    main_graph_builder.add_node(tool_selection) #工具选择的中间控制节点（通常结合 planner 的输出）。
+    main_graph_builder.add_node(summarize)  # 总结
+    main_graph_builder.add_node(
+        tool_selection
+    )  # 工具选择的中间控制节点（通常结合 planner 的输出）。
     main_graph_builder.add_node(final_answer)
-
 
     # 添加边
     main_graph_builder.add_edge(START, "guardrails")
     main_graph_builder.add_conditional_edges(
         "guardrails",
         guardrails_conditional_edge,
-    ) #这是条件边：执行完 guardrails 后，不是固定跳到某个节点，而是调用 guardrails_conditional_edge(state) 来返回下一跳的节点名（或一个映射）。
+    )  # 这是条件边：执行完 guardrails 后，不是固定跳到某个节点，而是调用 guardrails_conditional_edge(state) 来返回下一跳的节点名（或一个映射）。
     main_graph_builder.add_conditional_edges(
         "planner",
-        map_reduce_planner_to_tool_selection, #据 planner 写进 state 的结果，返回下一个要去的节点名
-        ["tool_selection"], #从 planner 出来只能跳到 "tool_selection"，且由 map_reduce_planner_to_tool_selection(state) 来决定（但这里其实被限制成只能选这一个）。
+        map_reduce_planner_to_tool_selection,  # 据 planner 写进 state 的结果，返回下一个要去的节点名
+        [
+            "tool_selection"
+        ],  # 从 planner 出来只能跳到 "tool_selection"，且由 map_reduce_planner_to_tool_selection(state) 来决定（但这里其实被限制成只能选这一个）。
     )
 
     main_graph_builder.add_edge("cypher_query", "summarize")
@@ -283,10 +296,14 @@ def create_kb_multi_tool_workflow(
         else settings.KB_ENABLE_EXTERNAL_SEARCH
     )
 
-    ingest_service_base = settings.INGEST_SERVICE_URL.rstrip("/") if settings.INGEST_SERVICE_URL else None
+    ingest_service_base = (
+        settings.INGEST_SERVICE_URL.rstrip("/") if settings.INGEST_SERVICE_URL else None
+    )
 
     postgres_search_url = (
-        f"{ingest_service_base}/api/v1/knowledge/search" if ingest_service_base else None
+        f"{ingest_service_base}/api/v1/knowledge/search"
+        if ingest_service_base
+        else None
     )
 
     external_url = external_search_url or settings.KB_EXTERNAL_SEARCH_URL
@@ -334,7 +351,9 @@ def create_kb_multi_tool_workflow(
             ("human", "用户问题：{question}"),
         ]
     )
-    guardrails_chain = guardrails_prompt | llm.with_structured_output(KBGuardrailsDecision)
+    guardrails_chain = guardrails_prompt | llm.with_structured_output(
+        KBGuardrailsDecision
+    )
 
     router_prompt = ChatPromptTemplate.from_messages(
         [
@@ -352,7 +371,7 @@ def create_kb_multi_tool_workflow(
                     "  - 执行策略：系统会**先查 postgres**，如果有结果就直接使用，**不会查询 milvus**\n"
                     "- **milvus**（Milvus向量库）：**仅作为兜底**，存放长文本、文章、典故故事等非结构化内容\n"
                     "  - 只有在 postgres 无结果时才会查询\n"
-                    "  - 典型问题：\"宫保鸡丁的完整历史故事\"、\"川菜的详细发展史\"（需要长篇叙事时）\n\n"
+                    '  - 典型问题："宫保鸡丁的完整历史故事"、"川菜的详细发展史"（需要长篇叙事时）\n\n'
                     "## 路由决策规则（严格执行：postgres 优先）\n"
                     "请根据问题特征选择合适的路由和工具：\n\n"
                     "**1. 通用历史文化查询（默认推荐）**\n"
@@ -363,7 +382,7 @@ def create_kb_multi_tool_workflow(
                     "   - 适用于：菜名查询、简短事实查询、人物关系、年代查询\n"
                     "   - route: local, tools: ['postgres']\n\n"
                     "**3. 明确需要长文本叙事（可能需要 milvus）**\n"
-                    "   - 适用于：用户明确要求\"完整故事\"、\"详细历史\"、\"长篇介绍\"\n"
+                    '   - 适用于：用户明确要求"完整故事"、"详细历史"、"长篇介绍"\n'
                     "   - route: local, tools: ['milvus']\n\n"
                     "**4. 外部检索类（需要外网资料）**\n"
                     "   - 本地知识库可能不足，需要外部检索\n"
@@ -450,7 +469,9 @@ def create_kb_multi_tool_workflow(
                 or meta.get("title")
                 or ""
             )
-            tool_label = TOOL_LABELS.get(str(doc.get("tool", "")).lower(), default_label)
+            tool_label = TOOL_LABELS.get(
+                str(doc.get("tool", "")).lower(), default_label
+            )
             tag = f"[{tool_label}#{idx + 1}] {snippet}"
             if source:
                 tag = f"{tag}\n来源：{source}"
@@ -558,11 +579,15 @@ def create_kb_multi_tool_workflow(
                 route,
             )
             route = "local"
-        tools = [tool for tool in decision.tools or [] if tool in {"milvus", "postgres"}]
+        tools = [
+            tool for tool in decision.tools or [] if tool in {"milvus", "postgres"}
+        ]
         if route != "external" and not tools:
             # 默认使用 postgres + milvus 兜底策略
             tools = ["postgres", "milvus"]
-            kb_logger.info("Router 未指定工具，使用默认策略: postgres 优先 + milvus 兜底")
+            kb_logger.info(
+                "Router 未指定工具，使用默认策略: postgres 优先 + milvus 兜底"
+            )
         kb_logger.info(
             "KB router decision: {} tools={} ({})",
             route,
@@ -621,14 +646,18 @@ def create_kb_multi_tool_workflow(
                 try:
                     timeout_cfg = aiohttp.ClientTimeout(total=request_timeout)
                     async with aiohttp.ClientSession(timeout=timeout_cfg) as session:
-                        async with session.post(postgres_search_url, json=payload) as response:
+                        async with session.post(
+                            postgres_search_url, json=payload
+                        ) as response:
                             if response.status == 200:
                                 body = await response.json()
                                 data_results = body.get("results") or []
                                 if isinstance(data_results, list):
                                     for idx, item in enumerate(data_results):
                                         item_copy = dict(item)
-                                        metadata_copy = dict(item_copy.get("metadata") or {})
+                                        metadata_copy = dict(
+                                            item_copy.get("metadata") or {}
+                                        )
                                         item_copy["metadata"] = metadata_copy
                                         item_copy["tool"] = "postgres"
                                         similarity = (
@@ -638,7 +667,9 @@ def create_kb_multi_tool_workflow(
                                         )
                                         if similarity is not None:
                                             try:
-                                                item_copy["similarity"] = float(similarity)
+                                                item_copy["similarity"] = float(
+                                                    similarity
+                                                )
                                             except (TypeError, ValueError):
                                                 item_copy["similarity"] = 0.0
                                         item_copy["id"] = str(
@@ -648,24 +679,44 @@ def create_kb_multi_tool_workflow(
                                             or f"postgres_{idx}"
                                         )
                                         postgres_results.append(item_copy)
-                                    if postgres_results and knowledge_service.reranker.enabled:
-                                        postgres_results = await knowledge_service.reranker.rerank(
-                                            question, postgres_results, effective_top_k
+                                    if (
+                                        postgres_results
+                                        and knowledge_service.reranker.enabled
+                                    ):
+                                        postgres_results = (
+                                            await knowledge_service.reranker.rerank(
+                                                question,
+                                                postgres_results,
+                                                effective_top_k,
+                                            )
                                         )
                                     filtered_postgres: List[Dict[str, Any]] = []
                                     for doc in postgres_results:
-                                        similarity = float(doc.get("similarity") or doc.get("score") or 0.0)
-                                        rerank_score = float(doc.get("rerank_score") or 0.0)
+                                        similarity = float(
+                                            doc.get("similarity")
+                                            or doc.get("score")
+                                            or 0.0
+                                        )
+                                        rerank_score = float(
+                                            doc.get("rerank_score") or 0.0
+                                        )
                                         if knowledge_service.reranker.enabled:
                                             if (
-                                                similarity >= settings.KB_POSTGRES_SIMILARITY_THRESHOLD
-                                                and rerank_score >= settings.KB_POSTGRES_RERANK_THRESHOLD
+                                                similarity
+                                                >= settings.KB_POSTGRES_SIMILARITY_THRESHOLD
+                                                and rerank_score
+                                                >= settings.KB_POSTGRES_RERANK_THRESHOLD
                                             ):
                                                 filtered_postgres.append(doc)
                                         else:
-                                            if similarity >= settings.KB_POSTGRES_SIMILARITY_THRESHOLD:
+                                            if (
+                                                similarity
+                                                >= settings.KB_POSTGRES_SIMILARITY_THRESHOLD
+                                            ):
                                                 filtered_postgres.append(doc)
-                                    postgres_results = filtered_postgres[:effective_top_k]
+                                    postgres_results = filtered_postgres[
+                                        :effective_top_k
+                                    ]
                                     kb_logger.info(
                                         "✅ PostgreSQL 返回 {} 条结果，过滤后保留 {} 条",
                                         len(data_results),
@@ -691,7 +742,7 @@ def create_kb_multi_tool_workflow(
             # PostgreSQL 有结果，直接使用，跳过 Milvus
             kb_logger.info(
                 "✅ PostgreSQL 有结果（{}条），直接使用结构化数据，跳过 Milvus 向量查询",
-                len(postgres_results)
+                len(postgres_results),
             )
             combined_results = postgres_results
         else:
@@ -800,7 +851,9 @@ def create_kb_multi_tool_workflow(
 
         milvus_results = state.get("milvus_results", [])
         postgres_results = state.get("postgres_results", [])
-        local_results = state.get("local_results", []) or (milvus_results + postgres_results)
+        local_results = state.get("local_results", []) or (
+            milvus_results + postgres_results
+        )
         external_results = state.get("external_results", [])
 
         milvus_context = _format_milvus_results(milvus_results)
@@ -829,7 +882,11 @@ def create_kb_multi_tool_workflow(
                 answer = str(response)
         except Exception as exc:  # pragma: no cover - defensive logging
             kb_logger.error("Failed to synthesise KB answer: {}", exc)
-            answer = local_context if local_context and local_context != "（无本地检索结果）" else ""
+            answer = (
+                local_context
+                if local_context and local_context != "（无本地检索结果）"
+                else ""
+            )
             if not answer:
                 answer = "检索已完成，但当前无法生成可靠的菜谱文化回答。"
 

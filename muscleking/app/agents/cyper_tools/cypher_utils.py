@@ -6,15 +6,17 @@ except ImportError:  # pragma: no cover - minimal stdlib fallback
     from typing import Annotated, TypedDict
 
 import logging
-from loguru import logger
 from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
 from langchain_neo4j import Neo4jGraph
-from muscleking.app.agents.cyper_tools.cypher_tools_prompts import create_text2cypher_generation_prompt_template, create_text2cypher_validation_prompt_template, create_text2cypher_correction_prompt_template
+from muscleking.app.agents.cyper_tools.cypher_tools_prompts import (
+    create_text2cypher_generation_prompt_template,
+    create_text2cypher_validation_prompt_template,
+    create_text2cypher_correction_prompt_template,
+)
 from muscleking.app.agents.retrieve.base import BaseCypherExampleRetriever
 from operator import add
 from pydantic import BaseModel, Field
-from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables.base import Runnable
 from langchain_neo4j.chains.graph_qa.cypher_utils import CypherQueryCorrector, Schema
 from neo4j.exceptions import CypherSyntaxError
@@ -32,6 +34,7 @@ logging.getLogger("neo4j.bolt").setLevel(logging.ERROR)
 class CypherInputState(TypedDict):
     task: Annotated[list, add]
 
+
 class CypherState(TypedDict):
     task: Annotated[list, add]
     statement: str
@@ -42,6 +45,7 @@ class CypherState(TypedDict):
     attempts: int
     steps: Annotated[List[str], add]
 
+
 class CypherOutputState(TypedDict):
     task: Annotated[list, add]
     statement: str
@@ -49,6 +53,7 @@ class CypherOutputState(TypedDict):
     errors: List[str]
     records: List[Dict[str, Any]]
     steps: List[str]
+
 
 class Property(BaseModel):
     """
@@ -64,6 +69,7 @@ class Property(BaseModel):
         coerce_numbers_to_str=True,
     )
 
+
 class ValidateCypherOutput(BaseModel):
     """
     Represents the validation result of a Cypher query's output,
@@ -76,6 +82,7 @@ class ValidateCypherOutput(BaseModel):
     filters: Optional[List[Property]] = Field(
         description="A list of property-based filters applied in the Cypher statement."
     )
+
 
 # 定义text2cypher generation prompt
 generation_prompt = create_text2cypher_generation_prompt_template()
@@ -176,7 +183,6 @@ async def validate_cypher_query_with_llm(
     errors: List[str] = []
     mapping_errors: List[str] = []
 
-
     # 使用大模型验证Cypher语句的语法， 通过 Pydantic 结构化输出
     try:
         llm_output: ValidateCypherOutput = await validate_cypher_chain.ainvoke(
@@ -246,19 +252,17 @@ def validate_cypher_query_with_schema(
         A list of any found errors.
     """
     from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.text2cypher.validation.models import (
-    CypherValidationTask,
-    Neo4jStructuredSchema,
-    Neo4jStructuredSchemaPropertyNumber,
-)
+        Neo4jStructuredSchema,
+    )
     from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.text2cypher.validation.validators import (
-    extract_entities_for_validation,
-    update_task_list_with_property_type,
-    _validate_node_property_names_with_enum,
-    _validate_node_property_values_with_enum,
-    _validate_node_property_values_with_range,
-    _validate_relationship_property_names_with_enum,
-    _validate_relationship_property_values_with_enum,
-    _validate_relationship_property_values_with_range,
+        extract_entities_for_validation,
+        update_task_list_with_property_type,
+        _validate_node_property_names_with_enum,
+        _validate_node_property_values_with_enum,
+        _validate_node_property_values_with_range,
+        _validate_relationship_property_names_with_enum,
+        _validate_relationship_property_values_with_enum,
+        _validate_relationship_property_values_with_range,
     )
 
     schema: Neo4jStructuredSchema = Neo4jStructuredSchema.model_validate(
@@ -338,13 +342,13 @@ def validate_no_writes_in_cypher_query(cypher_statement: str) -> List[str]:
 
     # 限制不允许使用写操作
     WRITE_CLAUSES = {
-    "CREATE",
-    "DELETE",
-    "DETACH DELETE",
-    "SET",
-    "REMOVE",
-    "FOREACH",
-    "MERGE",
+        "CREATE",
+        "DELETE",
+        "DETACH DELETE",
+        "SET",
+        "REMOVE",
+        "FOREACH",
+        "MERGE",
     }
 
     for wc in WRITE_CLAUSES:
@@ -359,7 +363,7 @@ def create_text2cypher_generation_node(
     graph: Neo4jGraph,
     cypher_example_retriever: BaseCypherExampleRetriever,
 ) -> Callable[[CypherInputState], Coroutine[Any, Any, Dict[str, Any]]]:
-    
+
     text2cypher_chain = generation_prompt | llm | StrOutputParser()
 
     async def generate_cypher(state: CypherInputState) -> Dict[str, Any]:
@@ -384,6 +388,7 @@ def create_text2cypher_generation_node(
         }
 
     return generate_cypher
+
 
 def create_text2cypher_validation_node(
     graph: Neo4jGraph,
@@ -428,7 +433,9 @@ def create_text2cypher_validation_node(
         errors.extend(syntax_error)
 
         # 检查Cypher查询中是否包含写操作(如CREATE、DELETE、SET等)，防止大模型意外修改数据库,
-        write_errors = validate_no_writes_in_cypher_query(cypher_statement=cypher_statement)
+        write_errors = validate_no_writes_in_cypher_query(
+            cypher_statement=cypher_statement
+        )
         errors.extend(write_errors)
 
         # Neo4j的关系是有方向性的。这一步会检查关系方向是否正确，如果不正确，会尝试自动修复。这对提高查询成功率很重要。
@@ -441,7 +448,9 @@ def create_text2cypher_validation_node(
         if llm is not None and llm_validation:
             llm_errors = await validate_cypher_query_with_llm(
                 validate_cypher_chain=validate_cypher_chain,
-                question=state.get("task", [""])[0] if isinstance(state.get("task", [""]), list) else state.get("task", ""),
+                question=state.get("task", [""])[0]
+                if isinstance(state.get("task", [""]), list)
+                else state.get("task", ""),
                 graph=graph,
                 cypher_statement=cypher_statement,
             )
@@ -469,7 +478,7 @@ def create_text2cypher_validation_node(
                 }
             )
             corrected_cypher = corrected_cypher_update
-            next_action = "execute_cypher" 
+            next_action = "execute_cypher"
 
         elif mapping_errors:  # 数据映射错误
             # TODO：1. 可以直接结束查询，告诉用户数据库中不存在 2. 可以再次引导用户提问，确认信息， 3. 也可以针对历史对话重新生成Cypher，再次尝试
@@ -499,6 +508,7 @@ def create_text2cypher_validation_node(
         }
 
     return validate_cypher
+
 
 def create_text2cypher_execution_node(
     graph: Neo4jGraph,

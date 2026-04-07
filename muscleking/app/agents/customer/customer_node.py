@@ -2,16 +2,18 @@
 LightRAG 查询节点
 使用 LightRAG 替代 Microsoft GraphRAG，提供轻量级、高效的图谱检索能力
 """
+
 from typing import Any, Callable, Coroutine, List, Dict, Optional
 import os
 from pydantic import BaseModel, Field
 import numpy as np
-from transformers import AutoTokenizer,AutoModel
+from transformers import AutoTokenizer, AutoModel
 
 try:
     from lightrag import LightRAG, QueryParam
     from lightrag.llm.hf import hf_embed
     from lightrag.utils import EmbeddingFunc
+
     LightRAG_AVAILABLE = True
 except ImportError:  # pragma: no cover - optional dependency
     LIGHTRAG_AVAILABLE = False
@@ -29,8 +31,9 @@ except ImportError:  # pragma: no cover - optional dependency
     def openai_embed(*args: Any, **kwargs: Any) -> Any:  # type: ignore[assignment]
         return _missing_lighttrag(*args, **kwargs)
 
+
 # 导入配置
-from muscleking.config.settings import settings
+from muscleking.app.config.settings import settings
 from loguru import logger
 
 logger = logger.bind(service="lightrag-node")
@@ -42,6 +45,7 @@ class LightRAGQueryInputState(BaseModel):
     query_name: str
     query_parameters: Dict[str, Any]
     steps: List[str]
+
 
 #   LightRAG 查询的输出状态类型
 class LightRAGQueryOutputState(BaseModel):
@@ -66,11 +70,12 @@ class LightRAGAPI:
     """
 
     def __init__(
-            self,
-            working_dir: Optional[str] = None,
-            retrieval_mode: Optional[str] = None,
-            top_k: Optional[int] = None,
-            max_token_size: Optional[int] = None,):
+        self,
+        working_dir: Optional[str] = None,
+        retrieval_mode: Optional[str] = None,
+        top_k: Optional[int] = None,
+        max_token_size: Optional[int] = None,
+    ):
         """
         初始化 LightRAG API
 
@@ -89,20 +94,20 @@ class LightRAGAPI:
         不使用 Neo4j 作为存储后端。Neo4j 是独立的结构化知识图谱。
         """
         self.working_dir = working_dir or settings.LIGHTRAG_WORKING_DIR
-        self.retrieval_mdoe = retrieval_mode or settings.LIGHTRAG_RETRIEVAL_MODE
+        self.retrieval_mode = retrieval_mode or settings.LIGHTRAG_RETRIEVAL_MODE
         self.top_k = top_k or settings.LIGHTRAG_TOP_K
         self.max_token_size = max_token_size or settings.LIGHTRAG_MAX_TOKEN_SIZE
         self.rag: Optional[LightRAG] = None
         self.initialized = False
 
     async def _llm_model_func(
-            self,
-            prompt = None,
-            system_prompt = None,
-            history_messages = [],
-            keyword_extraction = False,
-            **kwargs
-            ) -> str:
+        self,
+        prompt=None,
+        system_prompt=None,
+        history_messages=[],
+        keyword_extraction=False,
+        **kwargs,
+    ) -> str:
         """
         LLM 模型函数，用于 LightRAG 调用
 
@@ -125,12 +130,12 @@ class LightRAGAPI:
             LLM 返回的文本
         """
         return await openai_complete_if_cache(
-            model = settings.OPENAI_MODEL,
-            prompt = prompt,
-            system_prompt = system_prompt,
-            history_messages = history_messages,
-            api_key = settings.OPENAI_API_KEY,
-            base_url = settings.OPENAI_API_BASE,
+            model=settings.OPENAI_MODEL,
+            prompt=prompt,
+            system_prompt=system_prompt,
+            history_messages=history_messages,
+            api_key=settings.OPENAI_API_KEY,
+            base_url=settings.OPENAI_API_BASE,
             **kwargs,
         )
 
@@ -149,26 +154,26 @@ class LightRAGAPI:
             嵌入向量数组，形状为 (len(texts), embedding_dim)
         """
         return EmbeddingFunc(
-            embedding_dim = settings.EMBEDDING_DIMENSION,
+            embedding_dim=settings.EMBEDDING_DIMENSION,
             func=lambda texts: hf_embed(
                 texts,
                 tokenizer=AutoTokenizer.from_pretrained("BAAI/bge-small-zh-v1.5"),
-                embed_model=AutoModel.from_pretrained("BAAI/bge-small-zh-v1.5")
-            )
+                embed_model=AutoModel.from_pretrained("BAAI/bge-small-zh-v1.5"),
+            ),
         )
-        
+
     async def initialize(self):
         """初始化 LightRAG实例"""
         if self.initialized:
             return
         try:
-            #确保目录存在
+            # 确保目录存在
             os.makedirs(self.working_dir, exist_ok=True)
-            #获取embedding 维度
+            # 获取embedding 维度
             embedding_dim = int(settings.EMBEDDING_DIMENSION or 512)
             logger.info(f"Embedding 维度: {embedding_dim}")
 
-            #创建 lightrag 实例
+            # 创建 lightrag 实例
             logger.info(f"初始化 LightRAG，工作目录: {self.working_dir}")
             logger.info(f"LLM 模型: {settings.OPENAI_MODEL}")
             logger.info(f"Embedding 模型: {settings.EMBEDDING_MODEL_NAME}")
@@ -176,11 +181,11 @@ class LightRAGAPI:
                 working_dir=self.working_dir,
                 llm_model_func=self._llm_model_func,
                 embedding_func=self._embedding_func,
-                graph_storage="Neo4JStorage",#使用Neo4J存储图
-                vector_storage="MilvusVectorDBStorage",#使用Milvus存储向量
+                graph_storage="Neo4JStorage",  # 使用Neo4J存储图
+                vector_storage="MilvusVectorDBStorage",  # 使用Milvus存储向量
             )
 
-            #初始化存储
+            # 初始化存储
             logger.info("初始化 LightRAG 存储...")
             await self.rag.initialize_storages()
             await initialize_pipeline_status()
@@ -191,7 +196,7 @@ class LightRAGAPI:
         except Exception as e:
             logger.error(f"初始化 LightRAG 时出错: {str(e)}", exc_info=True)
             raise Exception(f"LightRAG 初始化失败: {str(e)}")
-        
+
     async def query(self, query: str, mode: Optional[str] = None) -> Dict[str, Any]:
         """
         执行 LightRAG 查询
@@ -210,7 +215,7 @@ class LightRAGAPI:
         """
         await self.initialize()
 
-        retrieval_mode = mode or self.retrieval_mdoe
+        retrieval_mode = mode or self.retrieval_mode
 
         try:
             logger.info(f"执行 LightRAG 查询，模式: {retrieval_mode}")
@@ -219,7 +224,7 @@ class LightRAGAPI:
             # 创建查询参数
             param = QueryParam(
                 mode=retrieval_mode,
-                top_k=self.top_k
+                top_k=self.top_k,
                 # chunk_top_k: 文本块检索数量，如果不指定则使用 top_k
                 # max_entity_tokens、max_relation_tokens: 可以通过环境变量配置
             )
@@ -229,11 +234,7 @@ class LightRAGAPI:
 
             logger.info(f"LightRAG 查询成功，响应长度: {len(response)} 字符")
 
-            return {
-                "response": response,
-                "mode": retrieval_mode,
-                "query": query
-            }
+            return {"response": response, "mode": retrieval_mode, "query": query}
 
         except Exception as e:
             logger.error(f"执行 LightRAG 查询时出错: {str(e)}", exc_info=True)
@@ -276,15 +277,15 @@ class LightRAGAPI:
             return {
                 "total": len(documents),
                 "success": success_count,
-                "error": error_count
+                "error": error_count,
             }
 
         except Exception as e:
             logger.error(f"批量插入文档时出错：{e}", exc_info=True)
             raise Exception(f"文档插入失败: {str(e)}")
-        
-def create_lightrag_query_node(
-) -> Callable[
+
+
+def create_lightrag_query_node() -> Callable[
     [Dict[str, Any]],
     Coroutine[Any, Any, Dict[str, List[LightRAGQueryOutputState] | List[str]]],
 ]:
@@ -297,32 +298,32 @@ def create_lightrag_query_node(
     """
 
     async def lightrag_query(
-            state: Dict[str, Any],
+        state: Dict[str, Any],
     ) -> Dict[str, List[LightRAGQueryOutputState] | List[str]]:
         """
         执行 LightRAG 查询并返回结果
         """
         errors = []
         search_result = {}
-        
-        #获取查询文本
+
+        # 获取查询文本
         query = state.get("task", "")
         if not query:
             errors.append("未提供查询文本")
         else:
             try:
-                #创建 LightRAG API 实例
+                # 创建 LightRAG API 实例
                 lightrag_api = LightRAGAPI()
 
-                #调用 LightRAG API 获取数据
+                # 调用 LightRAG API 获取数据
                 search_result = await lightrag_api.query(query)
-            
+
             except Exception as e:
                 errors.append(f"LightRAG 查询失败: {str(e)}")
                 logger.error(f"LightRAG 查询节点执行失败: {str(e)}", exc_info=True)
-        
+
         return {
-            "cyphers":[
+            "cyphers": [
                 LightRAGQueryOutputState(
                     **{
                         "task": state.get("task", ""),
@@ -337,8 +338,9 @@ def create_lightrag_query_node(
             ],
             "steps": ["execute_lightrag_query"],
         }
-    
+
     return lightrag_query
+
 
 create_graphrag_query_node = create_lightrag_query_node
 GraphRAGAPI = LightRAGAPI

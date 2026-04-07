@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Any
 from pydantic import BaseModel, ConfigDict
-import re
+
 
 class BaseCypherExampleRetriever(BaseModel, ABC):
     """
@@ -15,14 +14,14 @@ class BaseCypherExampleRetriever(BaseModel, ABC):
     def get_examples(self, query: str, k: int = 5) -> str:
         """
         根据用户查询返回相关的Cypher查询示例
-        
+
         Parameters
         ----------
         query : str
             用户的自然语言查询
         k : int, optional
             返回的示例数量, by default 5
-            
+
         Returns
         -------
         str

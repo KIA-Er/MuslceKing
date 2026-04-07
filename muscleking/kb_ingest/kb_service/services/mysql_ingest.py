@@ -10,7 +10,11 @@ from sqlalchemy.engine import create_engine
 
 from kb_service.clients.llm import LLMClient
 from kb_service.core.config import Config
-from kb_service.prompts.manager import PromptManager, SchemaColumn, build_prompt_manager_from_env
+from kb_service.prompts.manager import (
+    PromptManager,
+    SchemaColumn,
+    build_prompt_manager_from_env,
+)
 from kb_service.schemas.ingest import MySQLIngestRequest
 from kb_service.services.utils import flatten_row
 from kb_service.services.vector_store import VectorStoreWriter
@@ -47,7 +51,9 @@ class MySQLIngestor:
                     total_rows += len(chunk)
                     embedded_rows += self._process_chunk(chunk, schema, request)
 
-        self.logger.info("MySQL ingest完成: 共读取 %s 条, 写入 %s 条", total_rows, embedded_rows)
+        self.logger.info(
+            "MySQL ingest完成: 共读取 %s 条, 写入 %s 条", total_rows, embedded_rows
+        )
         return {"rows_read": total_rows, "rows_embedded": embedded_rows}
 
     def _process_chunk(
@@ -63,15 +69,21 @@ class MySQLIngestor:
         items: List[Dict] = []
         template_key = request.prompt_key or request.table
         override_template = request.prompt_template
-        effective_schema = schema or [SchemaColumn(name=str(col)) for col in chunk.columns]
+        effective_schema = schema or [
+            SchemaColumn(name=str(col)) for col in chunk.columns
+        ]
 
         for idx, row in chunk.iterrows():
-            row_dict = {k: (None if pd.isna(v) else v) for k, v in row.to_dict().items()}
+            row_dict = {
+                k: (None if pd.isna(v) else v) for k, v in row.to_dict().items()
+            }
             merged_meta = {**row_dict, **request.extra_metadata}
 
             source_id = self._extract_identifier(row_dict, request.id_column, idx)
             company_name = self._extract_optional_field(row_dict, request.company_field)
-            report_year = self._extract_optional_field(row_dict, request.report_year_field)
+            report_year = self._extract_optional_field(
+                row_dict, request.report_year_field
+            )
 
             if request.mode == "flatten":
                 content = flatten_row(merged_meta, self.config)
@@ -111,17 +123,26 @@ class MySQLIngestor:
                 if content:
                     return content
             except Exception as exc:
-                self.logger.warning("LLM 生成失败 (尝试 %s/%s): %s", attempt + 1, self.config.retry_times, exc)
+                self.logger.warning(
+                    "LLM 生成失败 (尝试 %s/%s): %s",
+                    attempt + 1,
+                    self.config.retry_times,
+                    exc,
+                )
                 if attempt < self.config.retry_times - 1:
                     time.sleep(self.config.retry_delay)
         return None
 
-    def _extract_identifier(self, row: Dict, id_column: Optional[str], fallback_idx: int) -> str:
+    def _extract_identifier(
+        self, row: Dict, id_column: Optional[str], fallback_idx: int
+    ) -> str:
         if id_column and id_column in row and row[id_column] is not None:
             return str(row[id_column])
         return str(fallback_idx)
 
-    def _extract_optional_field(self, row: Dict, field_name: Optional[str]) -> Optional[str]:
+    def _extract_optional_field(
+        self, row: Dict, field_name: Optional[str]
+    ) -> Optional[str]:
         if not field_name:
             return None
         value = row.get(field_name)

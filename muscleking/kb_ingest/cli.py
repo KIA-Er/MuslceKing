@@ -25,7 +25,9 @@ def run_search(query: str, top_k: int, threshold: float | None, metric: str) -> 
     """执行向量相似度搜索并格式化输出"""
     config = load_config()
     searcher = VectorSearcher(config)
-    results = searcher.search_similar(query=query, top_k=top_k, threshold=threshold, metric=metric)
+    results = searcher.search_similar(
+        query=query, top_k=top_k, threshold=threshold, metric=metric
+    )
     print(json.dumps(results, ensure_ascii=False, indent=2))
 
 
@@ -69,23 +71,37 @@ def main() -> None:
     ingest_parser = subparsers.add_parser("process-excel", help="Ingest an Excel file")
     ingest_parser.add_argument("path", help="Path to the Excel file")
 
-    search_parser = subparsers.add_parser("search", help="Run an ad-hoc similarity search")
+    search_parser = subparsers.add_parser(
+        "search", help="Run an ad-hoc similarity search"
+    )
     search_parser.add_argument("query", help="Query text")
     search_parser.add_argument("--top-k", type=int, default=10)
     search_parser.add_argument("--threshold", type=float, default=None)
     search_parser.add_argument("--metric", choices=["cosine", "l2"], default="cosine")
 
-    mysql_parser = subparsers.add_parser("ingest-mysql", help="Ingest data from a MySQL table")
-    mysql_parser.add_argument("connection_url", help="SQLAlchemy style MySQL connection URL")
+    mysql_parser = subparsers.add_parser(
+        "ingest-mysql", help="Ingest data from a MySQL table"
+    )
+    mysql_parser.add_argument(
+        "connection_url", help="SQLAlchemy style MySQL connection URL"
+    )
     mysql_parser.add_argument("table", help="Target table name")
     mysql_parser.add_argument("--where", help="Optional SQL WHERE clause")
-    mysql_parser.add_argument("--limit", type=int, help="Maximum number of rows to ingest")
-    mysql_parser.add_argument("--mode", choices=["rewrite", "flatten"], default="rewrite")
-    mysql_parser.add_argument("--prompt-key", help="Template key to look up in prompt config")
+    mysql_parser.add_argument(
+        "--limit", type=int, help="Maximum number of rows to ingest"
+    )
+    mysql_parser.add_argument(
+        "--mode", choices=["rewrite", "flatten"], default="rewrite"
+    )
+    mysql_parser.add_argument(
+        "--prompt-key", help="Template key to look up in prompt config"
+    )
     mysql_parser.add_argument("--prompt-template", help="Override user prompt template")
     mysql_parser.add_argument("--id-column", help="Column to use as unique ID")
     mysql_parser.add_argument("--company-field", help="Column containing company name")
-    mysql_parser.add_argument("--report-year-field", help="Column containing report year")
+    mysql_parser.add_argument(
+        "--report-year-field", help="Column containing report year"
+    )
 
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
@@ -93,7 +109,9 @@ def main() -> None:
     if args.command == "process-excel":
         process_excel(args.path)
     elif args.command == "search":
-        run_search(args.query, top_k=args.top_k, threshold=args.threshold, metric=args.metric)
+        run_search(
+            args.query, top_k=args.top_k, threshold=args.threshold, metric=args.metric
+        )
     elif args.command == "ingest-mysql":
         ingest_mysql(
             connection_url=args.connection_url,

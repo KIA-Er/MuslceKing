@@ -3,6 +3,7 @@ Backwards-compatible import wrappers for Text2SQL components.
 The actual implementations live under
 gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.text2sql.
 """
+
 from muscleking.app.agents.text2sql.components.text2sql_node import (
     create_answer_formatter_node,
     create_query_analysis_node,

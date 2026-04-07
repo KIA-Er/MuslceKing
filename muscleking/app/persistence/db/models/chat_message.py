@@ -1,12 +1,24 @@
 """
 Chat message models for persistent message storage.
 """
+
 from __future__ import annotations
 
-from sqlalchemy import Boolean, Column, DateTime, String, Text, Integer, ForeignKey, JSON, func
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    String,
+    Text,
+    Integer,
+    ForeignKey,
+    JSON,
+    func,
+)
 from sqlalchemy.orm import relationship
 
 from muscleking.app.persistence.core.database import Base
+
 
 class ChatMessage(Base):
     """
@@ -24,50 +36,35 @@ class ChatMessage(Base):
         ForeignKey("chat_sessions.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
-        comment="Session UUID this message belongs to"
+        comment="Session UUID this message belongs to",
     )
 
     # Message content
-    content = Column(
-        Text,
-        nullable=False,
-        comment="Message content"
-    )
+    content = Column(Text, nullable=False, comment="Message content")
 
     # Message type
     is_user = Column(
         Boolean,
         nullable=False,
         default=True,
-        comment="True if user message, False if assistant message"
+        comment="True if user message, False if assistant message",
     )
 
     # Message routing information
     route = Column(
-        String(100),
-        nullable=True,
-        comment="Route type for agent processing"
+        String(100), nullable=True, comment="Route type for agent processing"
     )
 
-    route_logic = Column(
-        Text,
-        nullable=True,
-        comment="Route logic explanation"
-    )
+    route_logic = Column(Text, nullable=True, comment="Route logic explanation")
 
     # Message metadata
     message_metadata = Column(
-        "metadata",
-        JSON,
-        nullable=True,
-        comment="Additional metadata as JSON"
+        "metadata", JSON, nullable=True, comment="Additional metadata as JSON"
     )
 
     # Message order in conversation
     order_index = Column(
-        Integer,
-        nullable=False,
-        comment="Order of message in conversation"
+        Integer, nullable=False, comment="Order of message in conversation"
     )
 
     # Timestamps
@@ -75,14 +72,11 @@ class ChatMessage(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
-        comment="Message creation timestamp"
+        comment="Message creation timestamp",
     )
 
     # Relationships
-    session = relationship(
-        "ChatSession",
-        back_populates="messages"
-    )
+    session = relationship("ChatSession", back_populates="messages")
 
     def __repr__(self) -> str:
         content_preview = self.content[:30] if self.content else ""

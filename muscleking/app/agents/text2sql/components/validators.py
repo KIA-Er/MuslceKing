@@ -1,6 +1,7 @@
 """
 SQL validation node.
 """
+
 from __future__ import annotations
 
 from typing import Any, Callable, Coroutine, Dict, List, Tuple
@@ -69,8 +70,6 @@ def create_sql_validation_node(
             }
 
     return validate_sql
-
-
 
 
 def validate_sql_syntax(sql: str, db_type: str = "MySQL") -> Tuple[bool, List[str]]:

@@ -23,8 +23,7 @@ class cypher_query(BaseModel):
     """
 
     task: str = Field(
-        ...,
-        description="健身相关的查询任务描述，LLM 会根据此任务生成 Cypher 查询语句"
+        ..., description="健身相关的查询任务描述，LLM 会根据此任务生成 Cypher 查询语句"
     )
 
 
@@ -36,13 +35,12 @@ class predefined_cypher(BaseModel):
     """
 
     query: str = Field(
-        ...,
-        description="预定义查询标识符，对应 fitness_cypher_dict 中的键"
+        ..., description="预定义查询标识符，对应 fitness_cypher_dict 中的键"
     )
 
     parameters: dict = Field(
         ...,
-        description="查询所需参数，如 {'exercise_name': '深蹲', 'muscle_name': '股四头肌'}"
+        description="查询所需参数，如 {'exercise_name': '深蹲', 'muscle_name': '股四头肌'}",
     )
 
 
@@ -105,10 +103,7 @@ class microsoft_graphrag_query(BaseModel):
     当用户提出需要多跳推理、综合分析的健身问题时使用。
     """
 
-    query: str = Field(
-        ...,
-        description="需要通过 GraphRAG 进行深度推理的复杂健身问题"
-    )
+    query: str = Field(..., description="需要通过 GraphRAG 进行深度推理的复杂健身问题")
 
 
 class text2sql_query(BaseModel):
@@ -117,27 +112,18 @@ class text2sql_query(BaseModel):
     用于健身日志、训练记录、用户数据等关系型数据库查询。
     """
 
-    task: str = Field(
-        ...,
-        description="需要执行的健身数据查询任务描述"
-    )
+    task: str = Field(..., description="需要执行的健身数据查询任务描述")
 
     connection_id: Optional[int] = Field(
-        default=None,
-        description="数据库连接配置 ID，留空则使用默认连接"
+        default=None, description="数据库连接配置 ID，留空则使用默认连接"
     )
 
     db_type: str = Field(
-        default="MySQL",
-        description="数据库类型，如 MySQL、PostgreSQL"
+        default="MySQL", description="数据库类型，如 MySQL、PostgreSQL"
     )
 
-    max_rows: int = Field(
-        default=1000,
-        description="结果最大返回行数"
-    )
+    max_rows: int = Field(default=1000, description="结果最大返回行数")
 
     connection_string: Optional[str] = Field(
-        default=None,
-        description="直接传入数据库连接字符串（优先级最高）"
+        default=None, description="直接传入数据库连接字符串（优先级最高）"
     )

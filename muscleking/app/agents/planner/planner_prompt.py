@@ -2,7 +2,6 @@ from langchain_core.prompts import ChatPromptTemplate
 from muscleking.app.agents.lg_prompts import PLANNER_SYSTEM_PROMPT
 
 
-
 def create_planner_prompt_template() -> ChatPromptTemplate:
     """
     Create a planner prompt template.

@@ -190,7 +190,7 @@ class FitnessVectorQueryMatcher:
                     "human",
                     f"""用户问题: {user_question}
 查询类型: {query_name}
-需要提取的参数: {', '.join(param_names)}
+需要提取的参数: {", ".join(param_names)}
 
 请以 JSON 返回，例如:
 {{"exercise_name": "深蹲", "muscle_name": "腿"}}""",
@@ -221,6 +221,7 @@ class FitnessVectorQueryMatcher:
 # =========================
 # 工厂方法
 # =========================
+
 
 def create_vector_query_matcher(
     predefined_cypher_dict: Dict[str, str],

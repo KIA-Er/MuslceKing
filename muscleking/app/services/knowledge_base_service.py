@@ -1,4 +1,5 @@
 """知识库服务."""
+
 from __future__ import annotations
 
 import asyncio
@@ -10,10 +11,11 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
-from muscleking.config import settings
+from muscleking.app.config import settings
 import torch
 from .vector_store import VectorStore
 from sentence_transformers import CrossEncoder
+
 
 # 注意，exercise_id对应父文档的id，chunk_id(即ids)对应子文档的id
 class KnowledgeBaseService:
@@ -26,7 +28,7 @@ class KnowledgeBaseService:
         chunk_size: Optional[int] = None,
         chunk_overlap: Optional[int] = None,
     ) -> None:
-        
+
         self.chunk_size = chunk_size or settings.KB_CHUNK_SIZE
         self.chunk_overlap = chunk_overlap or settings.KB_CHUNK_OVERLAP
 
@@ -40,7 +42,7 @@ class KnowledgeBaseService:
         # 载入嵌入模型
         device = "cuda" if torch.cuda.is_available() else "cpu"
         self.embeddings = HuggingFaceEmbeddings(
-            model_name= settings.EMBEDDING_MODEL_NAME,
+            model_name=settings.EMBEDDING_MODEL_NAME,
             model_kwargs={
                 "device": device,
                 "trust_remote_code": True,
@@ -50,7 +52,7 @@ class KnowledgeBaseService:
                 "batch_size": 32,
             },
         )
-        
+
         # 载入向量存储
         self.vector_store = vector_store or VectorStore(
             collection_name=settings.MILVUS_COLLECTION,
@@ -60,7 +62,7 @@ class KnowledgeBaseService:
             index_type=settings.MILVUS_INDEX_TYPE,
             metric_type=settings.MILVUS_METRIC_TYPE,
         )
-        
+
         # 载入重排序模型
         self.reranker = CrossEncoder(
             settings.RERANK_MODEL,
@@ -100,7 +102,9 @@ class KnowledgeBaseService:
         result = await self.ingest_text(content, metadata=meta)
         return result.get("add_count", 0) > 0
 
-    async def add_exercise(self, exercise_id: str, exercise_data: Dict[str, Any]) -> bool:
+    async def add_exercise(
+        self, exercise_id: str, exercise_data: Dict[str, Any]
+    ) -> bool:
         """
         添加单个锻炼动作到知识库中(适用于json格式的锻炼动作数据)
         Args:
@@ -118,13 +122,17 @@ class KnowledgeBaseService:
         }
         result = await self.ingest_text(content, metadata=metadata)
         return result.get("add_count", 0) > 0
-    
-    async def add_exercises_batch(self, exercises: List[Dict[str, Any]]) -> Dict[str, int]:
+
+    async def add_exercises_batch(
+        self, exercises: List[Dict[str, Any]]
+    ) -> Dict[str, int]:
         """批量添加锻炼动作到知识库中(适用于json格式的锻炼动作数据)"""
         success_count = 0
         error_count = 0
         for exercise in exercises:
-            exercise_id = exercise.get("exerciseId") or exercise.get("id") or str(uuid4())
+            exercise_id = (
+                exercise.get("exerciseId") or exercise.get("id") or str(uuid4())
+            )
             if await self.add_exercise(exercise_id, exercise):
                 success_count += 1
             else:
@@ -149,7 +157,9 @@ class KnowledgeBaseService:
             return {"add_count": 0, "ids": []}
 
         # 对文本进行分块(List[Document])
-        documents = await asyncio.to_thread(self._split_into_documents, content, metadata or {})
+        documents = await asyncio.to_thread(
+            self._split_into_documents, content, metadata or {}
+        )
         if not documents:
             return {"add_count": 0, "ids": []}
 
@@ -160,7 +170,7 @@ class KnowledgeBaseService:
 
         result = await asyncio.to_thread(self._store_documents, documents, embeddings)
         return result
-    
+
     async def rerank_candidates(
         self,
         query: str,
@@ -181,7 +191,7 @@ class KnowledgeBaseService:
             return []
 
         top_k = top_k or len(candidates)
-        
+
         scores = await asyncio.to_thread(
             self.reranker.predict,
             [(query, candidate["content"]) for candidate in candidates],
@@ -217,7 +227,9 @@ class KnowledgeBaseService:
 
         top_k = top_k or settings.KB_TOP_K
         similarity_threshold = (
-            similarity_threshold if similarity_threshold else settings.KB_SIMILARITY_THRESHOLD
+            similarity_threshold
+            if similarity_threshold
+            else settings.KB_SIMILARITY_THRESHOLD
         )
 
         # 如果启用 reranker，先召回更多候选文档
@@ -230,13 +242,15 @@ class KnowledgeBaseService:
             self.vector_store.search,
             query_embedding,
             recall_k,  # 最大召回数量, 如果后续要用reranker, recall_k需要大于top_k
-            filter_expr, # 用于过滤文档的表达式
+            filter_expr,  # 用于过滤文档的表达式
         )
 
         # 过滤出符合相似度阈值的文档
         candidates = results
         if filter_by_similarity and similarity_threshold is not None:
-            candidates = [r for r in candidates if r.get("score", 0.0) >= similarity_threshold]
+            candidates = [
+                r for r in candidates if r.get("score", 0.0) >= similarity_threshold
+            ]
 
         # 使用 reranker 精排
         if candidates and self.enable_rerank:
@@ -248,18 +262,25 @@ class KnowledgeBaseService:
                 if r.get("rerank_score", 0.0) >= settings.KB_RERANK_SCORE_THRESHOLD
             ]
         elif not filter_by_similarity and similarity_threshold is not None:
-            candidates = [r for r in candidates if r.get("score", 0.0) >= similarity_threshold]
+            candidates = [
+                r for r in candidates if r.get("score", 0.0) >= similarity_threshold
+            ]
 
-        return candidates[:top_k]   # 这里的top_k和精排前的top_k是一样的，后续看看要不要修改
+        return candidates[
+            :top_k
+        ]  # 这里的top_k和精排前的top_k是一样的，后续看看要不要修改
 
     async def delete_exercise(self, exercise_id: str) -> bool:
         """删除知识库中的指定锻炼动作"""
-        return await asyncio.to_thread(self.vector_store.delete_documents, [exercise_id])
+        return await asyncio.to_thread(
+            self.vector_store.delete_documents, [exercise_id]
+        )
 
     async def get_stats(self) -> Dict[str, Any]:
         """
         获取向量库的统计信息
         """
+
         def _stats() -> Dict[str, Any]:
             stats = self.vector_store.get_collection_stats()
             stats.update(
@@ -281,12 +302,14 @@ class KnowledgeBaseService:
         """关闭数据库连接"""
         await asyncio.to_thread(self.vector_store.close)
 
-    def _split_into_documents(self, content: str, metadata: Dict[str, Any]) -> List[Document]:
+    def _split_into_documents(
+        self, content: str, metadata: Dict[str, Any]
+    ) -> List[Document]:
         """将文本分块为多个chunk(每个都是一个Document对象)
         Args:
             content: 原始文本内容
             metadata: 该文本的元数据
-        Returns: 
+        Returns:
             一个Document对象列表
         """
         base_document = Document(page_content=content, metadata=metadata)
@@ -316,18 +339,25 @@ class KnowledgeBaseService:
         for index, doc in enumerate(documents):
             metadata = dict(doc.metadata or {})
             # 得到父文档（分块之前）的ID
-            exercise_id = metadata.get("exercise_id") or metadata.get("id") or metadata.get("source") or uuid4().hex
+            exercise_id = (
+                metadata.get("exercise_id")
+                or metadata.get("id")
+                or metadata.get("source")
+                or uuid4().hex
+            )
             # 当前分块的ID, 格式为: 父文档ID_分块索引
             chunk_id = f"{exercise_id}_{index}"
             metadata.setdefault("exercise_id", exercise_id)
             metadata.setdefault("chunk_id", chunk_id)
-            metadata.setdefault("name", metadata.get("name") or metadata.get("title") or "")
+            metadata.setdefault(
+                "name", metadata.get("name") or metadata.get("title") or ""
+            )
 
             ids.append(chunk_id)
             contents.append(doc.page_content)
             metadatas.append(metadata)
 
-        # 向量数据库存储四个列表： 
+        # 向量数据库存储四个列表：
         # ids（分块ID列表）, embeddings（嵌入向量列表）, contents（分块内容列表）, metadatas（分块元数据列表）
         # metadata中至少包含了base_id、chunk_id和name等信息，方便后续查询和管理
         success = self.vector_store.add_documents(
@@ -346,7 +376,7 @@ class KnowledgeBaseService:
         if isinstance(value, str):
             return [value]
         return []
-    
+
     def _format_exercise_content(self, exercise_data: Dict[str, Any]) -> str:
         """
         格式化字典格式的动作内容为字符串(动作的长文本具体描述,即content)
@@ -364,7 +394,7 @@ class KnowledgeBaseService:
         equipments = self._normalize_str_list(exercise_data.get("equipments"))
         if equipments:
             parts.append(f"动作器械：{', '.join(equipments)}")
-        
+
         bodyParts = self._normalize_str_list(exercise_data.get("bodyParts"))
         if bodyParts:
             parts.append(f"主要锻炼部位：{', '.join(bodyParts)}")
@@ -372,15 +402,17 @@ class KnowledgeBaseService:
         targetMuscles = self._normalize_str_list(exercise_data.get("targetMuscles"))
         if targetMuscles:
             parts.append(f"目标肌肉：{', '.join(targetMuscles)}")
-        
-        secondaryMuscles = self._normalize_str_list(exercise_data.get("secondaryMuscles"))
+
+        secondaryMuscles = self._normalize_str_list(
+            exercise_data.get("secondaryMuscles")
+        )
         if secondaryMuscles:
             parts.append(f"辅助肌肉：{', '.join(secondaryMuscles)}")
-        
+
         exerciseType = self._normalize_str_list(exercise_data.get("exerciseType"))
         if exerciseType:
             parts.append(f"动作类型：{', '.join(exerciseType)}")
-        
+
         gender = self._normalize_str_list(exercise_data.get("gender"))
         if gender:
             parts.append(f"适用性别：{', '.join(gender)}")
@@ -394,4 +426,3 @@ class KnowledgeBaseService:
             parts.append(f"动作指导：{', '.join(instructions)}")
 
         return "\n".join(parts)
-

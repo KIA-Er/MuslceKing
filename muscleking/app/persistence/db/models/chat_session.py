@@ -3,12 +3,14 @@ Chat session models for persistent conversation storage.
 
 Lightweight user ID system - no authentication, just user identification.
 """
+
 from __future__ import annotations
 
 from sqlalchemy import Boolean, Column, DateTime, String, func
 from sqlalchemy.orm import relationship
 
 from muscleking.app.persistence.core.database import Base
+
 
 class ChatSession(Base):
     """
@@ -30,14 +32,14 @@ class ChatSession(Base):
         String(255),
         nullable=True,
         index=True,
-        comment="User identifier (device ID, anonymous UUID, etc.) - no authentication"
+        comment="User identifier (device ID, anonymous UUID, etc.) - no authentication",
     )
 
     # Session metadata
     title = Column(
         String(500),
         nullable=False,
-        comment="Session title (usually derived from first query)"
+        comment="Session title (usually derived from first query)",
     )
 
     # Timestamps
@@ -45,14 +47,14 @@ class ChatSession(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         nullable=False,
-        comment="Session creation timestamp"
+        comment="Session creation timestamp",
     )
     updated_at = Column(
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
         nullable=True,
-        comment="Last update timestamp"
+        comment="Last update timestamp",
     )
 
     # Status flag for soft delete
@@ -60,7 +62,7 @@ class ChatSession(Base):
         Boolean,
         default=True,
         nullable=False,
-        comment="Whether the session is active (soft delete flag)"
+        comment="Whether the session is active (soft delete flag)",
     )
 
     # Relationships
@@ -68,13 +70,13 @@ class ChatSession(Base):
         "ChatMessage",
         back_populates="session",
         cascade="all, delete-orphan",
-        order_by="ChatMessage.order_index"
+        order_by="ChatMessage.order_index",
     )
     snapshots = relationship(
         "ChatSessionSnapshot",
         back_populates="session",
         cascade="all, delete-orphan",
-        order_by="ChatSessionSnapshot.created_at.desc()"
+        order_by="ChatSessionSnapshot.created_at.desc()",
     )
 
     def __repr__(self) -> str:

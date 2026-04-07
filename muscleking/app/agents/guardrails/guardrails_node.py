@@ -4,7 +4,9 @@ from langchain_core.language_models import BaseChatModel
 from langchain_core.runnables.base import Runnable
 from langchain_neo4j import Neo4jGraph
 from loguru import logger
-from muscleking.app.agents.guardrails.guardrails_prompt import create_guardrails_prompt_template
+from muscleking.app.agents.guardrails.guardrails_prompt import (
+    create_guardrails_prompt_template,
+)
 from muscleking.app.agents.agent_state import InputState
 
 
@@ -64,7 +66,11 @@ def create_guardrails_node(
             "多少",
         ]
 
-        if any(keyword in question for keyword in heuristics_keywords) or "?" in question or "？" in question:#TODO 有bug，“今天天气如何？”能够通过范围筛选
+        if (
+            any(keyword in question for keyword in heuristics_keywords)
+            or "?" in question
+            or "？" in question
+        ):  # TODO 有bug，“今天天气如何？”能够通过范围筛选
             logger.info(
                 "Fitness Guardrails: 命中健身关键词，直接进入 planner。",
                 extra={"question": question},

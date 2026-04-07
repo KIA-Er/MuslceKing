@@ -80,7 +80,9 @@ class PromptManager:
             "table_name": context_table_name or table_name,
             "columns": self._format_schema(schema),
             "row_flat": self._format_row_data(row_data),
-            "row_json": json.dumps(self._serialize_row_data(row_data), ensure_ascii=False),
+            "row_json": json.dumps(
+                self._serialize_row_data(row_data), ensure_ascii=False
+            ),
         }
         user_prompt = Template(template.user).safe_substitute(context)
         return template.system, user_prompt
@@ -120,7 +122,9 @@ class PromptManager:
             lines.append(f"- {key}: {value}")
         return "\n".join(lines) if lines else "(空记录)"
 
-    def _serialize_row_data(self, row_data: Mapping[str, object]) -> Mapping[str, object]:
+    def _serialize_row_data(
+        self, row_data: Mapping[str, object]
+    ) -> Mapping[str, object]:
         """序列化row_data，处理datetime等不可序列化的对象"""
         serialized = {}
         for key, value in row_data.items():

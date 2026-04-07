@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 class RerankAPIError(Exception):
     """Reranker API 调用异常"""
+
     pass
 
 
@@ -53,18 +54,26 @@ class RerankerClient:
                 # endpoint 本身就是完整 URL
                 self.endpoint = config.rerank_endpoint
             else:
-                raise ValueError("自建服务模式需要配置 RERANK_BASE_URL 或完整的 RERANK_ENDPOINT URL")
+                raise ValueError(
+                    "自建服务模式需要配置 RERANK_BASE_URL 或完整的 RERANK_ENDPOINT URL"
+                )
 
             self.mode = "custom"
             self.api_key = config.rerank_api_key
             self.model = config.rerank_model  # 可选的模型名称
             if self.model:
-                logger.info("Reranker 使用自建服务模式 (endpoint=%s, model=%s)", self.endpoint, self.model)
+                logger.info(
+                    "Reranker 使用自建服务模式 (endpoint=%s, model=%s)",
+                    self.endpoint,
+                    self.model,
+                )
             else:
                 logger.info("Reranker 使用自建服务模式 (endpoint=%s)", self.endpoint)
 
         else:
-            raise ValueError(f"不支持的 RERANK_PROVIDER: {config.rerank_provider}，仅支持 'cohere' 或 'custom'")
+            raise ValueError(
+                f"不支持的 RERANK_PROVIDER: {config.rerank_provider}，仅支持 'cohere' 或 'custom'"
+            )
 
     def rerank(
         self,
@@ -137,7 +146,9 @@ class RerankerClient:
                 retries=3,
             )
             elapsed = (time.time() - start) * 1000
-            logger.info("Cohere Rerank 完成 (%.1f ms, %d 文档)", elapsed, len(doc_texts))
+            logger.info(
+                "Cohere Rerank 完成 (%.1f ms, %d 文档)", elapsed, len(doc_texts)
+            )
         except Exception as exc:
             elapsed = (time.time() - start) * 1000
             logger.warning("Cohere Rerank 请求失败(%.1f ms): %s", elapsed, exc)
@@ -157,10 +168,12 @@ class RerankerClient:
             if index is None or score is None:
                 continue
             if 0 <= index < len(documents):
-                reranked.append({
-                    "id": documents[index]["id"],
-                    "score": float(score),
-                })
+                reranked.append(
+                    {
+                        "id": documents[index]["id"],
+                        "score": float(score),
+                    }
+                )
 
         # Cohere 已按分数排序，但我们再确保一次
         reranked.sort(key=lambda x: x["score"], reverse=True)
@@ -218,7 +231,9 @@ class RerankerClient:
                 continue
             if 0 <= index < len(documents):
                 try:
-                    reranked.append({"id": documents[index]["id"], "score": float(score)})
+                    reranked.append(
+                        {"id": documents[index]["id"], "score": float(score)}
+                    )
                 except (TypeError, ValueError, KeyError):
                     continue
 
@@ -237,9 +252,11 @@ class RerankerClient:
         last_error = None
         for i in range(retries):
             try:
-                response = requests.post(url, headers=headers, json=payload, timeout=self.timeout)
+                response = requests.post(
+                    url, headers=headers, json=payload, timeout=self.timeout
+                )
                 if response.status_code == 429:  # rate limit
-                    wait_time = backoff * (2 ** i)
+                    wait_time = backoff * (2**i)
                     logger.warning("遇到限流 (429)，等待 %.1f 秒后重试...", wait_time)
                     time.sleep(wait_time)
                     continue
@@ -248,7 +265,7 @@ class RerankerClient:
             except Exception as e:
                 last_error = e
                 if i < retries - 1:
-                    wait_time = backoff * (2 ** i)
+                    wait_time = backoff * (2**i)
                     logger.warning("请求失败，等待 %.1f 秒后重试: %s", wait_time, e)
                     time.sleep(wait_time)
         raise RerankAPIError(f"Rerank 请求失败（重试 {retries} 次）: {last_error}")

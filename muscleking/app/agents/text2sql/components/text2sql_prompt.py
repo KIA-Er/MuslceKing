@@ -1,13 +1,18 @@
 """
 Prompt templates for SQL generation.
 """
+
 from __future__ import annotations
 
 from typing import Dict, List
 
 from langchain_core.prompts import ChatPromptTemplate
 
-from muscleking.app.agents.text2sql.components.prompt import COLUMN_DESCRIPTIONS, DOMAIN_SUMMARY, TABLE_DESCRIPTIONS
+from muscleking.app.agents.text2sql.components.prompt import (
+    COLUMN_DESCRIPTIONS,
+    DOMAIN_SUMMARY,
+    TABLE_DESCRIPTIONS,
+)
 
 
 def create_sql_generation_prompt() -> ChatPromptTemplate:
@@ -22,9 +27,7 @@ def create_sql_generation_prompt() -> ChatPromptTemplate:
 5. 默认只生成只读查询（SELECT/CTE）。
 """
     system_message = (
-        system_message.strip()
-        + "\n\n数据库真实结构背景：\n"
-        + DOMAIN_SUMMARY
+        system_message.strip() + "\n\n数据库真实结构背景：\n" + DOMAIN_SUMMARY
     )
 
     human_message = """
@@ -52,6 +55,7 @@ def create_sql_generation_prompt() -> ChatPromptTemplate:
         ]
     )
 
+
 def create_query_analysis_prompt() -> ChatPromptTemplate:
     """
     Build the prompt used for analysing the natural language question against
@@ -75,9 +79,7 @@ def create_query_analysis_prompt() -> ChatPromptTemplate:
 输出必须是有效的 JSON，严禁添加额外说明。
 """
     system_message = (
-        system_message.strip()
-        + "\n\n数据库真实结构背景：\n"
-        + DOMAIN_SUMMARY
+        system_message.strip() + "\n\n数据库真实结构背景：\n" + DOMAIN_SUMMARY
     )
 
     human_message = """
@@ -106,7 +108,6 @@ def create_query_analysis_prompt() -> ChatPromptTemplate:
     )
 
 
-
 def format_schema_as_text(schema_context: Dict[str, any]) -> str:
     """
     Convert schema context into a SQL-like textual description for prompting.
@@ -119,7 +120,9 @@ def format_schema_as_text(schema_context: Dict[str, any]) -> str:
     for table in schema_context.get("tables", []):
         table_name = table.get("table_name", "unknown_table")
         table_key = table_name.lower()
-        description = table.get("description") or TABLE_DESCRIPTIONS.get(table_key) or ""
+        description = (
+            table.get("description") or TABLE_DESCRIPTIONS.get(table_key) or ""
+        )
 
         lines.append(f"-- Table: {table_name}")
         if description:
@@ -131,7 +134,9 @@ def format_schema_as_text(schema_context: Dict[str, any]) -> str:
             column_name = column.get("column_name", "col")
             data_type = column.get("data_type", "TEXT")
             column_key = (table_key, column_name.lower())
-            column_description = column.get("description") or COLUMN_DESCRIPTIONS.get(column_key) or ""
+            column_description = (
+                column.get("description") or COLUMN_DESCRIPTIONS.get(column_key) or ""
+            )
             column_constraints: List[str] = []
             if column.get("is_primary_key"):
                 column_constraints.append("PRIMARY KEY")
@@ -140,7 +145,9 @@ def format_schema_as_text(schema_context: Dict[str, any]) -> str:
             if column.get("is_unique"):
                 column_constraints.append("UNIQUE")
 
-            constraint_str = f" {' '.join(column_constraints)}" if column_constraints else ""
+            constraint_str = (
+                f" {' '.join(column_constraints)}" if column_constraints else ""
+            )
             comma = "," if index < len(columns) - 1 else ""
             lines.append(f"    {column_name} {data_type}{constraint_str}{comma}")
             if column_description:
@@ -168,7 +175,6 @@ def format_schema_as_text(schema_context: Dict[str, any]) -> str:
     return "\n".join(lines)
 
 
-
 def create_visualization_prompt() -> ChatPromptTemplate:
     system_message = """
 你是一名数据可视化顾问，需根据 SQL 查询的结果数据推荐最合适的图表类型。
@@ -185,9 +191,7 @@ def create_visualization_prompt() -> ChatPromptTemplate:
 chart_type 若为 table，可省略 x_axis/y_axis。
 """
     system_message = (
-        system_message.strip()
-        + "\n\n数据库真实结构背景：\n"
-        + DOMAIN_SUMMARY
+        system_message.strip() + "\n\n数据库真实结构背景：\n" + DOMAIN_SUMMARY
     )
 
     human_message = """

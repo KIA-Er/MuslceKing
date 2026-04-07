@@ -1,8 +1,9 @@
-﻿"""
+"""
 Text2SQL State Definitions
 
 文本到 SQL 工作流使用到的 TypedDict 定义。
 """
+
 from __future__ import annotations
 
 import operator

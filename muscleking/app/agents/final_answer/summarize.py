@@ -48,12 +48,16 @@ def create_summarization_node(
 
             # 训练步骤（步骤序号 + 动作说明）
             is_training_steps = all(
-                "步骤序号" in row and "动作说明" in row for row in rows if isinstance(row, dict)
+                "步骤序号" in row and "动作说明" in row
+                for row in rows
+                if isinstance(row, dict)
             )
 
             # 动作列表（动作 + 目标肌群）
             is_exercise_list = all(
-                "动作" in row and "目标肌群" in row for row in rows if isinstance(row, dict)
+                "动作" in row and "目标肌群" in row
+                for row in rows
+                if isinstance(row, dict)
             )
 
             for idx, row in enumerate(rows, 1):
@@ -87,14 +91,18 @@ def create_summarization_node(
             else:
                 data = {}
 
-            task_label = tasks[idx].question if idx < len(tasks) else data.get("task", "")
+            task_label = (
+                tasks[idx].question if idx < len(tasks) else data.get("task", "")
+            )
 
             records = data.get("records") or {}
             errors = data.get("errors") or []
 
             if errors:
                 error_sections.append(
-                    f"{task_label}：{'；'.join(errors)}" if task_label else "；".join(errors)
+                    f"{task_label}：{'；'.join(errors)}"
+                    if task_label
+                    else "；".join(errors)
                 )
                 continue
 
@@ -139,7 +147,9 @@ def create_summarization_node(
             sections.append("### 📊 训练数据\n" + "\n\n".join(metric_sections))
 
         if error_sections:
-            sections.append("### ⚠️ 查询提示\n" + "\n".join(f"- {msg}" for msg in error_sections))
+            sections.append(
+                "### ⚠️ 查询提示\n" + "\n".join(f"- {msg}" for msg in error_sections)
+            )
 
         summary = "\n\n".join(sections).strip() or "暂无可总结的健身数据。"
 

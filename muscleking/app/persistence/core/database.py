@@ -1,39 +1,39 @@
 """
 Database configuration helpers and session utilities.
 """
+
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Dict, Generator, Iterator
+from typing import Generator, Iterator
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+from sqlalchemy.orm import Session, declarative_base
 
-from muscleking.config.settings import settings
 
 _DEFAULT_LOG_ECHO = bool(True)
 
-_connect_args: Dict[str, bool] = {}
-if settings.DATABASE_URL.startswith("sqlite"):
-    _connect_args = {"check_same_thread": False}
+# TODO:重构database操作
+# _connect_args: Dict[str, bool] = {}
+# if settings.DATABASE_URL.startswith("sqlite"):
+#     _connect_args = {"check_same_thread": False}
 
-# 数据库引擎
-engine = create_engine(
-    settings.DATABASE_URL,
-    echo=_DEFAULT_LOG_ECHO,
-    future=True,
-    pool_pre_ping=True,
-    connect_args=_connect_args,
-)
+# # 数据库引擎
+# engine = create_engine(
+#     settings.DATABASE_URL,
+#     echo=_DEFAULT_LOG_ECHO,
+#     future=True,
+#     pool_pre_ping=True,
+#     connect_args=_connect_args,
+# )
 
-# 会话工厂
-SessionLocal = sessionmaker(
-    bind=engine,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False,
-    class_=Session,
-)
+# # 会话工厂
+# SessionLocal = sessionmaker(
+#     bind=engine,
+#     autocommit=False,
+#     autoflush=False,
+#     expire_on_commit=False,
+#     class_=Session,
+# )
 
 Base = declarative_base()
 
@@ -46,7 +46,6 @@ def init_db(*, create_all: bool = False) -> None:
     """
     if create_all:
         # Lazy import to avoid circular dependencies during startup.
-        import muscleking.app.persistence.db.models  
 
         Base.metadata.create_all(bind=engine)
 
@@ -55,7 +54,7 @@ def get_db() -> Generator[Session, None, None]:
     """
     Provide a database session dependency for FastAPI routes.
     """
-    db = SessionLocal() # 得到一个数据库会话
+    db = SessionLocal()  # 得到一个数据库会话
     try:
         yield db
     finally:

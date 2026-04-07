@@ -1,6 +1,7 @@
 """
 Lightweight wrapper for OpenAI-compatible chat completions.
 """
+
 from __future__ import annotations
 
 import json
@@ -8,7 +9,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from loguru import logger
 from openai import AsyncOpenAI
-from muscleking.config import settings
+from muscleking.app.config import settings
 
 ChatMessage = Dict[str, str]
 
@@ -34,14 +35,17 @@ class LLMClient:
             self._client = AsyncOpenAI(
                 api_key=self.api_key,
                 base_url=self.base_url,
-
             )
         else:
-            logger.warning("LLMClient initialised without OPENAI_API_KEY; LLM features disabled.")
+            logger.warning(
+                "LLMClient initialised without OPENAI_API_KEY; LLM features disabled."
+            )
 
     def _ensure_client(self) -> AsyncOpenAI:
         if not self._client:
-            raise RuntimeError("LLM client is not configured. Provide OPENAI_API_KEY to enable it.")
+            raise RuntimeError(
+                "LLM client is not configured. Provide OPENAI_API_KEY to enable it."
+            )
         return self._client
 
     @staticmethod
@@ -85,7 +89,9 @@ class LLMClient:
         messages = self._format_messages(system_prompt, user_message, context)
         response = await self.complete(
             messages=messages,
-            temperature=temperature if temperature is not None else self.default_temperature,
+            temperature=temperature
+            if temperature is not None
+            else self.default_temperature,
         )
         choice = response.choices[0]
         message = getattr(choice, "message", None)
@@ -110,7 +116,9 @@ class LLMClient:
             )
             content = response.choices[0].message.content or ""
         except Exception as exc:
-            logger.warning("Structured response failed ({}); falling back to plain text.", exc)
+            logger.warning(
+                "Structured response failed ({}); falling back to plain text.", exc
+            )
             response = await self.complete(messages=messages, temperature=temperature)
             content = response.choices[0].message.content or ""
 

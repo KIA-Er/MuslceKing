@@ -1,40 +1,37 @@
 """
 langgraph 多路由图构造
 """
+
 from langchain_core.messages import BaseMessage
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.graph import END, START, StateGraph
+from langgraph.graph import START, StateGraph
 from loguru import logger
 from muscleking.app.agents.models.model_lg_state import AdditionalGuardrailsOutput
-from dataclasses import dataclass, field
-from muscleking.app.agents.models.model_lg_state import AgentState, InputState, Router, GradeHallucinations
-from muscleking.app.agents.lg_prompts import (ROUTER_SYSTEM_PROMPT,GENERAL_QUERY_SYSTEM_PROMPT,GUARDRAILS_SYSTEM_PROMPT,GET_ADDITIONAL_SYSTEM_PROMPT)
+from muscleking.app.agents.models.model_lg_state import AgentState, InputState, Router
+
+# from muscleking.app.agents.lg_prompts import (ROUTER_SYSTEM_PROMPT,GENERAL_QUERY_SYSTEM_PROMPT,GUARDRAILS_SYSTEM_PROMPT,GET_ADDITIONAL_SYSTEM_PROMPT)
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
-from muscleking.config import settings
-from typing import cast, Literal, List, Dict, Any, Optional
-from langgraph.checkpoint.memory import MemorySaver
+from muscleking.app.config import settings
+from typing import Literal, List, Dict, Any, Optional
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage
 from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
 from muscleking.app.utils.utils import retrieve_and_parse_schema_from_graph_for_prompts
 from muscleking.app.services.knowledge_base_service import KnowledgeBaseService
 from muscleking.app.agents.kb_workflow import create_kb_multi_tool_workflow
-from muscleking.app.agents.retrieve.fitness_retriever import \
-    FitnessCypherRetriever
+from muscleking.app.agents.retrieve.fitness_retriever import FitnessCypherRetriever
 from muscleking.app.agents.multi_agent.multi_tools import (
     create_multi_tool_workflow,
-) 
-from pydantic import BaseModel, Field
-from muscleking.app.services.knowledge_base_service import KnowledgeBaseService
-from muscleking.app.agents.kb_workflow import create_kb_multi_tool_workflow
+)
+from pydantic import BaseModel
 
 logger = logger.bind(service="lg_builder")
 
 
 # 意图识别：llm路由
 async def analyze_and_route_query(
-        state: AgentState, *, config: RunnableConfig
+    state: AgentState, *, config: RunnableConfig
 ) -> dict[str, Router]:
     """用llm分析用户query并选择适当的路由。
 
@@ -58,9 +55,7 @@ async def analyze_and_route_query(
     )
 
     # 拼接提示模版 + 用户的实时问题（包含历史上下文对话）
-    prompt = [
-                   {"role": "system", "content": ROUTER_SYSTEM_PROMPT}
-               ] + state.messages
+    prompt = [{"role": "system", "content": ROUTER_SYSTEM_PROMPT}] + state.messages
     logger.info("-----分析用户的query类型-----")
     logger.info(f"历史消息记录（包含用户query）: {state.messages}")
     # 提取用户的query
@@ -90,7 +85,11 @@ async def analyze_and_route_query(
         logger.warning("llm路由失败: %s. 使用fallback_router.", exc)
         return {"router": fallback_router}
     # 规范化输出,保证字段访问兼容response是Router类型
-    response = raw_response if isinstance(raw_response, Router) else Router.model_validate(raw_response)
+    response = (
+        raw_response
+        if isinstance(raw_response, Router)
+        else Router.model_validate(raw_response)
+    )
     router_type = response.type
     logic = response.logic or ""
     # 路由类型无效时的处理
@@ -114,8 +113,6 @@ async def analyze_and_route_query(
     return {"router": sanitized_router}
 
 
-
-
 # 意图识别：启发式路由
 def _heuristic_router(question: str) -> Optional[Router]:
     """基于关键词的启发式路由,用于分类用户query.(只写了lightrag-query和general-query的关键词)"""
@@ -126,13 +123,28 @@ def _heuristic_router(question: str) -> Optional[Router]:
 
     # === lightrag 关键词：动作要点 / 训练步骤 / 计划分解 ===
     lightrag_keywords = [
-        "怎么练","如何练","怎么做",
-        "如何做","动作","要点","姿势","计划","训练计划",
+        "怎么练",
+        "如何练",
+        "怎么做",
+        "如何做",
+        "动作",
+        "要点",
+        "姿势",
+        "计划",
+        "训练计划",
     ]
 
     general_keywords = [
-        "天气", "笑话", "故事", "翻译", "怎么写代码", "调试",
-         "推荐电影", "推荐书", "如何学习", "考试",
+        "天气",
+        "笑话",
+        "故事",
+        "翻译",
+        "怎么写代码",
+        "调试",
+        "推荐电影",
+        "推荐书",
+        "如何学习",
+        "考试",
     ]
 
     # --- 匹配 lightrag ---
@@ -155,9 +167,15 @@ def _heuristic_router(question: str) -> Optional[Router]:
 
 # 根据意图识别路由到不同处理节点
 def route_query(
-        state: AgentState,
+    state: AgentState,
 ) -> Literal[
-    "respond_to_general_query", "get_additional_info", "create_research_plan", "create_image_query", "create_file_query", "create_kb_query"]:
+    "respond_to_general_query",
+    "get_additional_info",
+    "create_research_plan",
+    "create_image_query",
+    "create_file_query",
+    "create_kb_query",
+]:
     """根据查询分类确定下一步操作。
 
     Args:
@@ -166,7 +184,10 @@ def route_query(
     Returns:
         Literal["respond_to_general_query", "get_additional_info", "create_research_plan", "create_image_query", "create_file_query"，"create_kb_query"]: 下一步操作。
     """
-    router = _ensure_router(getattr(state, "router", None), fallback_question=state.messages[-1].content if state.messages else "")
+    router = _ensure_router(
+        getattr(state, "router", None),
+        fallback_question=state.messages[-1].content if state.messages else "",
+    )
     state.router = router
     _type = router.type or "kb-query"
 
@@ -190,7 +211,7 @@ def route_query(
     #     return "create_image_query"
     # elif _type == "file-query":
     #     return "create_file_query"
-    elif _type=="kb-query":
+    elif _type == "kb-query":
         return "create_kb_query"
     else:
         raise ValueError(f"Unknown router type {_type}")
@@ -209,9 +230,9 @@ def _ensure_router(router_obj: Any, *, fallback_question: str = "") -> Router:
     return Router(type="kb-query", logic="missing router", question=fallback_question)
 
 
-#类型一：直接用大模型回答不含本地及其他外部知识
+# 类型一：直接用大模型回答不含本地及其他外部知识
 async def respond_to_general_query(
-        state: AgentState, *, config: RunnableConfig
+    state: AgentState, *, config: RunnableConfig
 ) -> Dict[str, List[BaseMessage]]:
     """生成对一般查询的响应，完全基于大模型，不会触发任何外部服务的调用，包括自定义工具、知识库查询等。
     当路由器将查询分类为一般问题时，将调用此节点。
@@ -224,25 +245,29 @@ async def respond_to_general_query(
     logger.info("-----generate general-query response-----")
 
     # 使用大模型生成回复
-    model = ChatOpenAI(openai_api_key=settings.OPENAI_API_KEY, model_name=settings.OPENAI_MODEL,
-                       openai_api_base=settings.OPENAI_API_BASE, temperature=0.7,
-                       tags=["general_query"])
-
-    router = _ensure_router(getattr(state, "router", None), fallback_question=state.messages[-1].content if state.messages else "")
-    state.router = router
-    system_prompt = GENERAL_QUERY_SYSTEM_PROMPT.format(
-        logic=router.logic
+    model = ChatOpenAI(
+        openai_api_key=settings.OPENAI_API_KEY,
+        model_name=settings.OPENAI_MODEL,
+        openai_api_base=settings.OPENAI_API_BASE,
+        temperature=0.7,
+        tags=["general_query"],
     )
+
+    router = _ensure_router(
+        getattr(state, "router", None),
+        fallback_question=state.messages[-1].content if state.messages else "",
+    )
+    state.router = router
+    system_prompt = GENERAL_QUERY_SYSTEM_PROMPT.format(logic=router.logic)
 
     messages = [{"role": "system", "content": system_prompt}] + state.messages
     response = await model.ainvoke(messages)
     return {"messages": [response]}
 
 
-
 # 类型二：需要从用户获取更多信息再回答
 async def get_additional_info(
-        state: AgentState, *, config: RunnableConfig
+    state: AgentState, *, config: RunnableConfig
 ) -> Dict[str, List[BaseMessage]]:
     """生成一个响应，要求用户提供更多信息。
 
@@ -258,9 +283,13 @@ async def get_additional_info(
     logger.info("------continue to get additional info------")
 
     # 使用大模型生成回复
-    model = ChatOpenAI(openai_api_key=settings.OPENAI_API_KEY, model_name=settings.OPENAI_MODEL,
-                       openai_api_base=settings.OPENAI_API_BASE, temperature=0.7,
-                       tags=["additional_info"])
+    model = ChatOpenAI(
+        openai_api_key=settings.OPENAI_API_KEY,
+        model_name=settings.OPENAI_MODEL,
+        openai_api_base=settings.OPENAI_API_BASE,
+        temperature=0.7,
+        tags=["additional_info"],
+    )
     # 如果用户的问题是健身相关，但与自己的业务无关，则需要返回"无关问题"
 
     # 首先连接 Neo4j 图数据库
@@ -329,7 +358,9 @@ async def get_additional_info(
     )
 
     # 构建格式化输出的 Chain， 如果匹配，返回 continue，否则返回 end
-    guardrails_chain = full_system_prompt | model.with_structured_output(AdditionalGuardrailsOutput)
+    guardrails_chain = full_system_prompt | model.with_structured_output(
+        AdditionalGuardrailsOutput
+    )
     guardrails_output: AdditionalGuardrailsOutput = await guardrails_chain.ainvoke(
         {"question": state.messages[-1].content if state.messages else ""}
     )
@@ -342,17 +373,25 @@ async def get_additional_info(
     # 根据格式化输出的结果，返回不同的响应
     if guardrails_output.decision == "end":
         logger.info("-----Fail to pass guardrails check-----")
-        return {"messages": [AIMessage(content="肌霸您好～抱歉哦，这个问题不太属于我们的范围呢，我主要帮您解答健身方面的问题～😊")]}
+        return {
+            "messages": [
+                AIMessage(
+                    content="肌霸您好～抱歉哦，这个问题不太属于我们的范围呢，我主要帮您解答健身方面的问题～😊"
+                )
+            ]
+        }
     else:
         logger.info("-----Pass guardrails check-----")
-        router = _ensure_router(getattr(state, "router", None), fallback_question=state.messages[-1].content if state.messages else "")
-        state.router = router
-        system_prompt = GET_ADDITIONAL_SYSTEM_PROMPT.format(
-            logic=router.logic
+        router = _ensure_router(
+            getattr(state, "router", None),
+            fallback_question=state.messages[-1].content if state.messages else "",
         )
+        state.router = router
+        system_prompt = GET_ADDITIONAL_SYSTEM_PROMPT.format(logic=router.logic)
         messages = [{"role": "system", "content": system_prompt}] + state.messages
         response = await model.ainvoke(messages)
         return {"messages": [response]}
+
 
 # 从 Config 中提取 configurable 字段
 def _extract_configurable(config: Any) -> Dict[str, Any]:
@@ -362,19 +401,26 @@ def _extract_configurable(config: Any) -> Dict[str, Any]:
     if isinstance(config, dict):
         value = config.get("configurable", {})
         return value if isinstance(value, dict) else {}
-    logger.warning("无法从 config 中提取 configurable 字段,返回空字典。请确保config和里面的configurable字段都必须是字典。")
+    logger.warning(
+        "无法从 config 中提取 configurable 字段,返回空字典。请确保config和里面的configurable字段都必须是字典。"
+    )
     return {}
+
 
 # 类型三：知识库问答
 async def create_kb_query(
-        state: AgentState, *, config: RunnableConfig
+    state: AgentState, *, config: RunnableConfig
 ) -> Dict[str, List[BaseMessage]]:
     """通过一个多工具子图进行知识库查询."""
     logger.info("------execute KB multi-tool query------")
     # 提取用户的query
     last_message = state.messages[-1].content if state.messages else ""
     if not last_message.strip():
-        return {"messages": [AIMessage(content="请告诉我具体的问题，我才能帮您查询知识库。")]}
+        return {
+            "messages": [
+                AIMessage(content="请告诉我具体的问题，我才能帮您查询知识库。")
+            ]
+        }
     # 提取config中的configurable字段
     config_opts = _extract_configurable(config)
     kb_top_k = config_opts.get("kb_top_k") or settings.KB_TOP_K
@@ -388,7 +434,9 @@ async def create_kb_query(
     knowledge_service: Optional[KnowledgeBaseService] = None
     try:
         if not settings.OPENAI_API_KEY:
-            raise RuntimeError("OPENAI_API_KEY is not configured for KB multi-tool workflow.")
+            raise RuntimeError(
+                "OPENAI_API_KEY is not configured for KB multi-tool workflow."
+            )
 
         llm = ChatOpenAI(
             openai_api_key=settings.OPENAI_API_KEY,
@@ -440,7 +488,10 @@ async def create_kb_query(
 
         return {"messages": [ai_message]}
     except Exception as exc:
-        logger.warning("KB multi-tool workflow unavailable (%s); falling back to direct search.", exc)
+        logger.warning(
+            "KB multi-tool workflow unavailable (%s); falling back to direct search.",
+            exc,
+        )
 
     # # Fallback: direct KB query
     # if knowledge_service is None:
@@ -459,9 +510,10 @@ async def create_kb_query(
     # answer_text = result.get("answer", "") or "抱歉，我暂时无法从知识库中找到答案。"
     # return {"messages": [AIMessage(content=answer_text)]}
 
+
 # 类型四： 图工具 查询节点
 async def create_research_plan(
-        state: AgentState, *, config: RunnableConfig
+    state: AgentState, *, config: RunnableConfig
 ) -> Dict[str, List[str] | str]:
     """通过查询本地图知识库回答客户问题，执行任务分解，创建分布查询计划。
 
@@ -476,7 +528,9 @@ async def create_research_plan(
 
     # 使用大模型生成查询/多跳、并行查询计划
     if not settings.OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY is not configured for research plan generation.")
+        raise RuntimeError(
+            "OPENAI_API_KEY is not configured for research plan generation."
+        )
 
     model = ChatOpenAI(
         openai_api_key=settings.OPENAI_API_KEY,
@@ -488,7 +542,7 @@ async def create_research_plan(
 
     # 初始化必要参数
     #  Neo4j图数据库连接 - 使用配置中的连接信息
-    neo4j_graph=None
+    neo4j_graph = None
     try:
         neo4j_graph = get_neo4j_graph()
         logger.info("success to get Neo4j graph database connection")
@@ -505,6 +559,7 @@ async def create_research_plan(
         microsoft_graphrag_query,
         text2sql_query,
     )
+
     tool_schemas: List[type[BaseModel]] = [
         cypher_query,
         predefined_cypher,
@@ -513,8 +568,7 @@ async def create_research_plan(
     ]
 
     #  预定义的Cypher查询 为菜谱场景定义有用的查询
-    from muscleking.app.agents.cyper_tools.cypher_dict import \
-        predefined_cypher_dict
+    from muscleking.app.agents.cyper_tools.cypher_dict import predefined_cypher_dict
 
     # 定义菜谱助手服务范围
     scope_description = """
@@ -569,17 +623,15 @@ async def create_research_plan(
     return {"messages": [AIMessage(content=response["answer"])]}
 
 
-
-
 checkpointer = MemorySaver()
 
 # 定义状态图
 builder = StateGraph(AgentState, input=InputState)
 # 添加节点
-builder.add_node(analyze_and_route_query) # 意图识别
+builder.add_node(analyze_and_route_query)  # 意图识别
 
-builder.add_node(respond_to_general_query)# 默认回复
-builder.add_node(get_additional_info) # 额外信息
+builder.add_node(respond_to_general_query)  # 默认回复
+builder.add_node(get_additional_info)  # 额外信息
 builder.add_node(create_research_plan)  # 这里是lightrag neo4j-query
 builder.add_node(create_kb_query)
 # builder.add_node(create_image_query)
@@ -590,8 +642,3 @@ builder.add_edge(START, analyze_and_route_query)
 builder.add_conditional_edges(analyze_and_route_query, route_query)
 
 graph = builder.compile(checkpointer=checkpointer)
-
-
-
-
-

@@ -1,23 +1,29 @@
 from typing import Any, Callable, Coroutine, Dict, List
 from pydantic import BaseModel
+
 # 导入必要的模块
 from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
 from loguru import logger
 from langchain_openai import ChatOpenAI
-from muscleking.config import settings
+from muscleking.app.config import settings
 from muscleking.app.agents.retrieve.fitness_retriever import FitnessCypherRetriever
-from muscleking.app.agents.cyper_tools.cypher_utils import create_text2cypher_generation_node, create_text2cypher_validation_node, create_text2cypher_execution_node
-
+from muscleking.app.agents.cyper_tools.cypher_utils import (
+    create_text2cypher_generation_node,
+    create_text2cypher_validation_node,
+    create_text2cypher_execution_node,
+)
 
 
 # 获取日志记录器
 logger = logger.bind(service="cypher_tools")
+
 
 # 定义GraphRAG查询的输入状态类型
 class CypherQueryInputState(BaseModel):
     task: str
     query: str
     steps: List[str]
+
 
 # 定义GraphRAG查询的输出状态类型
 class CypherQueryOutputState(BaseModel):
@@ -27,10 +33,11 @@ class CypherQueryOutputState(BaseModel):
     records: Dict[str, Any]
     steps: List[str]
 
+
 # 定义GraphRAG API包装器
 
-def create_cypher_query_node(
-) -> Callable[
+
+def create_cypher_query_node() -> Callable[
     [CypherQueryInputState],
     Coroutine[Any, Any, Dict[str, List[CypherQueryOutputState] | List[str]]],
 ]:
@@ -128,7 +135,7 @@ def create_cypher_query_node(
         """
         # 安装依赖
         pip install neo4j-graphrag
-        
+
         from neo4j_graphrag.retrievers import Text2CypherRetriever
         from neo4j_graphrag.llm import OpenAILLM
         import time
@@ -141,7 +148,7 @@ def create_cypher_query_node(
         NEO4J_DATABASE="neo4j"
 
         driver = GraphDatabase.driver(
-            NEO4J_URI, 
+            NEO4J_URI,
             auth=(NEO4J_USERNAME, NEO4J_PASSWORD)
             )
 
@@ -158,7 +165,7 @@ def create_cypher_query_node(
             examples=examples,
         )
 
-        
+
         # 执行检索：
         query_text = "muyu 都有哪些朋友？"
         print(retriever.search(query_text=query_text))
@@ -185,18 +192,21 @@ def create_cypher_query_node(
         return {
             "cyphers": [
                 CypherQueryOutputState(
-                        **{
-                            "task": state.get("task", ""),
-                            "query": query,
-                            "statement": "",
-                            "parameters":"",
-                            "errors": errors,
-                            "records": {"result": final_result["cyphers"][0]["records"]} if final_result.get("cyphers") and len(final_result["cyphers"]) > 0 else {"result": []},
-                            "steps": ["execute_cypher_query"],
-                        }
-                    )
-                ],
-                "steps": ["execute_cypher_query"],
-            }
-  
+                    **{
+                        "task": state.get("task", ""),
+                        "query": query,
+                        "statement": "",
+                        "parameters": "",
+                        "errors": errors,
+                        "records": {"result": final_result["cyphers"][0]["records"]}
+                        if final_result.get("cyphers")
+                        and len(final_result["cyphers"]) > 0
+                        else {"result": []},
+                        "steps": ["execute_cypher_query"],
+                    }
+                )
+            ],
+            "steps": ["execute_cypher_query"],
+        }
+
     return cypher_query
