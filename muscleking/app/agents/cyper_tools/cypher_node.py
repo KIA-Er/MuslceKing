@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
 from loguru import logger
 from langchain_openai import ChatOpenAI
-from muscleking.config import settings
+from muscleking.app.config import settings
 from muscleking.app.agents.retrieve.fitness_retriever import FitnessCypherRetriever
 from muscleking.app.agents.cyper_tools.cypher_utils import (
     create_text2cypher_generation_node,

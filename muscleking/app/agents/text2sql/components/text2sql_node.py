@@ -19,7 +19,7 @@ from langchain_core.output_parsers import StrOutputParser
 from .validators import validate_sql_syntax, validate_sql_security
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
-from muscleking.config import settings
+from muscleking.app.config import settings
 from muscleking.app.agents.text2sql.components.prompt import (
     COLUMN_DESCRIPTIONS,
     TABLE_DESCRIPTIONS,

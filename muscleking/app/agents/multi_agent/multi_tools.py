@@ -50,7 +50,7 @@ from muscleking.app.agents.predefined_cypher.predefined_cypher_node import (
 from muscleking.app.agents.customer.customer_node import create_graphrag_query_node
 from muscleking.app.agents.text2sql.text2sql_tool import create_text2sql_tool_node
 
-from muscleking.config import settings
+from muscleking.app.config import settings
 from muscleking.app.services.knowledge_base_service import KnowledgeBaseService
 
 
@@ -69,7 +69,7 @@ from muscleking.app.agents.multi_agent.edge import (
 # from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.customer_tools import create_graphrag_query_node
 # from gustobot.application.agents.kg_sub_graph.agentic_rag_agents.components.text2cypher.text2sql_tool import create_text2sql_tool_node
 
-# from muscleking.config import settings
+# from muscleking.app.config import settings
 # from gustobot.infrastructure.core.logger import get_logger
 # from gustobot.infrastructure.knowledge import KnowledgeService
 

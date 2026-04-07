@@ -10,7 +10,7 @@ class HealthResponse(BaseModel):
     name: str = Field(default="MuscleKing", description="服务名称")
     status: str = Field(default="healthy", description="服务状态")
     version: str = Field(default=settings.APP_VERSION)
-    datetimme: str = Field(
+    datetime: str = Field(
         default_factory=lambda: datetime.now(ZoneInfo("Asia/Shanghai")).strftime(
             "%Y-%m-%d, %H:%M:%S %Z"
         ),

@@ -8,7 +8,7 @@ from langchain_core.language_models import BaseChatModel
 from langgraph.constants import END, START
 from langgraph.graph.state import CompiledStateGraph, StateGraph
 from langchain_core.prompts import ChatPromptTemplate
-from muscleking.config import settings
+from muscleking.app.config import settings
 from loguru import logger
 from muscleking.app.agents.models.kb_state import (
     KBGuardrailsDecision,

@@ -7,7 +7,7 @@ os.environ["NEO4J_MODULE_LOG_LEVEL"] = "ERROR"
 
 # 尝试从 settings 获取配置，如果不可用则使用默认值
 try:
-    from muscleking.config import settings
+    from muscleking.app.config import settings
 
     NEO4J_URI = getattr(settings, "NEO4J_URI", "bolt://localhost:7687")
     NEO4J_USER = getattr(settings, "NEO4J_USER", "neo4j")

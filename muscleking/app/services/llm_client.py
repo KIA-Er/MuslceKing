@@ -9,7 +9,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 from loguru import logger
 from openai import AsyncOpenAI
-from muscleking.config import settings
+from muscleking.app.config import settings
 
 ChatMessage = Dict[str, str]
 

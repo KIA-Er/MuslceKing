@@ -11,7 +11,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 from langchain_community.embeddings import HuggingFaceEmbeddings
 
-from muscleking.config import settings
+from muscleking.app.config import settings
 import torch
 from .vector_store import VectorStore
 from sentence_transformers import CrossEncoder

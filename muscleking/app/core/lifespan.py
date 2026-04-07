@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
-from venv import logger
+from loguru import logger
 
 from fastapi import FastAPI
 

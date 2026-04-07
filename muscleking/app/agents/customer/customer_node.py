@@ -94,7 +94,7 @@ class LightRAGAPI:
         不使用 Neo4j 作为存储后端。Neo4j 是独立的结构化知识图谱。
         """
         self.working_dir = working_dir or settings.LIGHTRAG_WORKING_DIR
-        self.retrieval_mdoe = retrieval_mode or settings.LIGHTRAG_RETRIEVAL_MODE
+        self.retrieval_mode = retrieval_mode or settings.LIGHTRAG_RETRIEVAL_MODE
         self.top_k = top_k or settings.LIGHTRAG_TOP_K
         self.max_token_size = max_token_size or settings.LIGHTRAG_MAX_TOKEN_SIZE
         self.rag: Optional[LightRAG] = None
@@ -215,7 +215,7 @@ class LightRAGAPI:
         """
         await self.initialize()
 
-        retrieval_mode = mode or self.retrieval_mdoe
+        retrieval_mode = mode or self.retrieval_mode
 
         try:
             logger.info(f"执行 LightRAG 查询，模式: {retrieval_mode}")
