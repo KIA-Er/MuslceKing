@@ -12,6 +12,7 @@ from pymilvus import (
     FieldSchema,
     DataType,
     utility,
+    MilvusClient,
 )
 
 
@@ -275,3 +276,473 @@ class VectorStore:
             logger.info("Disconnected from Milvus")
         except Exception as e:
             logger.error(f"Failed to disconnect: {e}")
+
+
+class MilvusService:
+    """
+    Milvus 服务管理类 - 使用新版 MilvusClient API
+
+    提供更简洁的 Milvus 操作接口，支持：
+    - 集合管理（创建、删除、列出）
+    - 数据管理（插入、删除、更新）
+    - 向量搜索
+    - 索引管理
+    """
+
+    def __init__(
+        self,
+        collection_name: str = "fitness_knowledge",
+        uri: str = "http://localhost:19530",
+        dimension: int = 1024,
+    ):
+        """
+        初始化 Milvus 服务
+
+        Args:
+            collection_name: 集合名称
+            uri: Milvus 连接字符串
+            dimension: 向量维度
+        """
+        self.collection_name = collection_name
+        self.uri = uri
+        self.dimension = dimension
+        self.client = MilvusClient(uri=uri)
+        logger.info(f"MilvusService initialized with collection: {collection_name}")
+
+    def create_collection(
+        self,
+        dimension: int = 1024,
+        description: str = "Fitness knowledge collection",
+    ) -> bool:
+        """
+        创建新集合
+
+        Args:
+            dimension: 向量维度
+            description: 集合描述
+
+        Returns:
+            是否创建成功
+        """
+        try:
+            # 检查集合是否已存在
+            if self.client.has_collection(self.collection_name):
+                logger.warning(f"Collection {self.collection_name} already exists")
+                return True
+
+            # 定义 schema
+            schema = MilvusClient.create_schema(
+                auto_id=True,
+                enable_dynamic_field=True,
+                fields=[
+                    {"field_name": "id", "datatype": "VARCHAR", "is_primary": True, "max_length": 256},
+                    {"field_name": "embedding", "datatype": "FLOAT_VECTOR", "dim": dimension},
+                    {"field_name": "content", "datatype": "VARCHAR", "max_length": 65535},
+                    {"field_name": "source", "datatype": "VARCHAR", "max_length": 512},
+                    {"field_name": "title", "datatype": "VARCHAR", "max_length": 256},
+                ],
+                description=description,
+            )
+
+            # 创建集合
+            self.client.create_collection(self.collection_name, schema=schema)
+            logger.info(f"Collection {self.collection_name} created successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to create collection: {e}")
+            return False
+
+    def list_collections(self) -> List[str]:
+        """
+        列出所有集合
+
+        Returns:
+            集合名称列表
+        """
+        try:
+            collections = self.client.list_collections()
+            return [coll['collection_name'] for coll in collections]
+        except Exception as e:
+            logger.error(f"Failed to list collections: {e}")
+            return []
+
+    def drop_collection(self, collection_name: Optional[str] = None) -> bool:
+        """
+        删除集合
+
+        Args:
+            collection_name: 集合名称，默认为初始化时的集合
+
+        Returns:
+            是否删除成功
+        """
+        try:
+            name = collection_name or self.collection_name
+            self.client.drop_collection(name)
+            logger.info(f"Collection {name} dropped successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to drop collection: {e}")
+            return False
+
+    def has_collection(self, collection_name: Optional[str] = None) -> bool:
+        """
+        检查集合是否存在
+
+        Args:
+            collection_name: 集合名称，默认为初始化时的集合
+
+        Returns:
+            集合是否存在
+        """
+        try:
+            name = collection_name or self.collection_name
+            return self.client.has_collection(name)
+        except Exception as e:
+            logger.error(f"Failed to check collection existence: {e}")
+            return False
+
+    def insert_documents(
+        self,
+        data: List[Dict[str, Any]],
+    ) -> bool:
+        """
+        插入文档到集合
+
+        Args:
+            data: 文档数据列表，每项包含：
+                - embedding: List[float] - 向量
+                - content: str - 内容
+                - source: str - 来源
+                - title: str - 标题
+                - 其他元数据字段
+
+        Returns:
+            是否插入成功
+        """
+        try:
+            # 确保集合存在
+            if not self.has_collection():
+                self.create_collection(dimension=self.dimension)
+
+            # 插入数据
+            insert_result = self.client.insert(
+                collection_name=self.collection_name,
+                data=data
+            )
+
+            logger.info(f"Inserted {len(data)} documents into {self.collection_name}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to insert documents: {e}")
+            return False
+
+    def search(
+        self,
+        query_embedding: List[float],
+        top_k: int = 10,
+        filter_expression: Optional[str] = None,
+        output_fields: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        向量搜索
+
+        Args:
+            query_embedding: 查询向量
+            top_k: 返回结果数量
+            filter_expression: 过滤表达式，例如 "source == 'wikipedia'"
+            output_fields: 返回的字段列表
+
+        Returns:
+            搜索结果列表，每项包含：
+                - id: 文档ID
+                - distance: 相似度距离
+                - entity: 文档实体（包含所有字段）
+        """
+        try:
+            # 确保集合存在
+            if not self.has_collection():
+                logger.warning(f"Collection {self.collection_name} does not exist")
+                return []
+
+            # 默认返回字段
+            if output_fields is None:
+                output_fields = ["content", "source", "title"]
+
+            # 执行搜索
+            results = self.client.search(
+                collection_name=self.collection_name,
+                data=[query_embedding],
+                limit=top_k,
+                output_fields=output_fields,
+                filter=filter_expression,
+            )
+
+            # 格式化结果
+            formatted_results = []
+            for result in results[0]:  # 第一个查询向量的结果
+                formatted_results.append({
+                    "id": result.get("id"),
+                    "distance": result.get("distance"),
+                    "entity": result.get("entity", {}),
+                })
+
+            logger.info(f"Found {len(formatted_results)} results")
+            return formatted_results
+
+        except Exception as e:
+            logger.error(f"Failed to search: {e}")
+            return []
+
+    def delete_by_ids(self, ids: List[str]) -> bool:
+        """
+        根据ID删除文档
+
+        Args:
+            ids: 文档ID列表
+
+        Returns:
+            是否删除成功
+        """
+        try:
+            self.client.delete(
+                collection_name=self.collection_name,
+                ids=ids
+            )
+            logger.info(f"Deleted {len(ids)} documents")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to delete documents: {e}")
+            return False
+
+    def delete_by_filter(self, filter_expression: str) -> bool:
+        """
+        根据过滤表达式删除文档
+
+        Args:
+            filter_expression: 过滤表达式，例如 "source == 'wikipedia'"
+
+        Returns:
+            是否删除成功
+        """
+        try:
+            self.client.delete(
+                collection_name=self.collection_name,
+                filter=filter_expression
+            )
+            logger.info(f"Deleted documents matching: {filter_expression}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to delete by filter: {e}")
+            return False
+
+    def get_collection_info(self, collection_name: Optional[str] = None) -> Dict[str, Any]:
+        """
+        获取集合信息
+
+        Args:
+            collection_name: 集合名称，默认为初始化时的集合
+
+        Returns:
+            集合信息字典
+        """
+        try:
+            name = collection_name or self.collection_name
+
+            # 使用 describe_collection 获取详细信息
+            info = self.client.describe_collection(name)
+
+            return {
+                "collection_name": name,
+                "description": info.get("description", ""),
+                "num_entities": info.get("num_entities", 0),
+                "fields": info.get("fields", []),
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to get collection info: {e}")
+            return {}
+
+    def create_index(
+        self,
+        field_name: str = "embedding",
+        index_type: str = "IVF_FLAT",
+        metric_type: str = "IP",
+        params: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """
+        创建索引
+
+        Args:
+            field_name: 字段名
+            index_type: 索引类型 (IVF_FLAT, HNSW, FLAT 等)
+            metric_type: 度量类型 (IP, L2, COSINE)
+            params: 索引参数
+
+        Returns:
+            是否创建成功
+        """
+        try:
+            # 默认索引参数
+            if params is None:
+                params = {"nlist": 128} if index_type == "IVF_FLAT" else {}
+
+            index_config = {
+                "index_type": index_type,
+                "metric_type": metric_type,
+                "params": params,
+            }
+
+            self.client.create_index(
+                collection_name=self.collection_name,
+                field_name=field_name,
+                index_config=index_config
+            )
+
+            logger.info(f"Index created on field {field_name}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to create index: {e}")
+            return False
+
+    def list_indexes(self) -> List[str]:
+        """
+        列出集合的所有索引
+
+        Returns:
+            索引名称列表
+        """
+        try:
+            indexes = self.client.list_indexes(collection_name=self.collection_name)
+            return [idx.get("index_name", "") for idx in indexes]
+        except Exception as e:
+            logger.error(f"Failed to list indexes: {e}")
+            return []
+
+    def drop_index(self, index_name: str) -> bool:
+        """
+        删除索引
+
+        Args:
+            index_name: 索引名称
+
+        Returns:
+            是否删除成功
+        """
+        try:
+            self.client.drop_index(
+                collection_name=self.collection_name,
+                index_name=index_name
+            )
+            logger.info(f"Index {index_name} dropped")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to drop index: {e}")
+            return False
+
+    def count_entities(self) -> int:
+        """
+        统计集合中的实体数量
+
+        Returns:
+            实体数量
+        """
+        try:
+            info = self.client.describe_collection(self.collection_name)
+            return info.get("num_entities", 0)
+        except Exception as e:
+            logger.error(f"Failed to count entities: {e}")
+            return 0
+
+    def load_collection(self) -> bool:
+        """
+        加载集合到内存（用于搜索）
+
+        Returns:
+            是否加载成功
+        """
+        try:
+            self.client.load_collection(self.collection_name)
+            logger.info(f"Collection {self.collection_name} loaded to memory")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to load collection: {e}")
+            return False
+
+    def release_collection(self) -> bool:
+        """
+        释放集合内存
+
+        Returns:
+            是否释放成功
+        """
+        try:
+            self.client.release_collection(self.collection_name)
+            logger.info(f"Collection {self.collection_name} released from memory")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to release collection: {e}")
+            return False
+
+    def close(self):
+        """关闭 Milvus 连接"""
+        try:
+            self.client.close()
+            logger.info("Milvus connection closed")
+        except Exception as e:
+            logger.error(f"Failed to close connection: {e}")
+
+
+# 使用示例
+def example_usage():
+    """
+    Milvus 服务使用示例
+    """
+    # 初始化服务
+    service = MilvusService(
+        collection_name="fitness_knowledge",
+        uri="http://localhost:19530",
+        dimension=1024,
+    )
+
+    # 创建集合
+    service.create_collection(dimension=1024)
+
+    # 插入文档
+    documents = [
+        {
+            "embedding": [0.1] * 1024,
+            "content": "卧推是锻炼胸肌的最佳动作",
+            "source": "fitness_guide",
+            "title": "卧推教学",
+        },
+        {
+            "embedding": [0.2] * 1024,
+            "content": "深蹲主要锻炼腿部肌肉",
+            "source": "fitness_guide",
+            "title": "深蹲教学",
+        },
+    ]
+    service.insert_documents(documents)
+
+    # 搜索
+    query_vector = [0.1] * 1024
+    results = service.search(query_vector, top_k=5)
+    for result in results:
+        print(f"Score: {result['distance']}, Content: {result['entity']['content'][:50]}...")
+
+    # 获取集合信息
+    info = service.get_collection_info()
+    print(f"Collection info: {info}")
+
+    # 统计文档数量
+    count = service.count_entities()
+    print(f"Total documents: {count}")
+
+    # 关闭连接
+    service.close()
