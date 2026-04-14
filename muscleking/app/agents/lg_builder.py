@@ -9,13 +9,19 @@ from loguru import logger
 from muscleking.app.agents.models.model_lg_state import AdditionalGuardrailsOutput
 from muscleking.app.agents.models.model_lg_state import AgentState, InputState, Router
 
-# from muscleking.app.agents.lg_prompts import (ROUTER_SYSTEM_PROMPT,GENERAL_QUERY_SYSTEM_PROMPT,GUARDRAILS_SYSTEM_PROMPT,GET_ADDITIONAL_SYSTEM_PROMPT)
+from muscleking.app.agents.lg_prompts import (
+    ROUTER_SYSTEM_PROMPT,
+    GENERAL_QUERY_SYSTEM_PROMPT,
+    GUARDRAILS_SYSTEM_PROMPT,
+    # GET_ADDITIONAL_SYSTEM_PROMPT
+)
 from langchain_core.runnables import RunnableConfig
 from langchain_openai import ChatOpenAI
 from muscleking.app.config import settings
 from typing import Literal, List, Dict, Any, Optional
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import AIMessage
+from muscleking.app.core.context import get_global_context
 from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
 from muscleking.app.utils.utils import retrieve_and_parse_schema_from_graph_for_prompts
 from muscleking.app.services.knowledge_base_service import KnowledgeBaseService
@@ -27,7 +33,7 @@ from muscleking.app.agents.multi_agent.multi_tools import (
 from pydantic import BaseModel
 
 logger = logger.bind(service="lg_builder")
-
+ctx = get_global_context()
 
 # 意图识别：llm路由
 async def analyze_and_route_query(
@@ -46,13 +52,14 @@ async def analyze_and_route_query(
     if not settings.OPENAI_API_KEY:
         raise RuntimeError("OPENAI_API_KEY is not configured for router analysis.")
 
-    model = ChatOpenAI(
-        openai_api_key=settings.OPENAI_API_KEY,
-        model_name=settings.OPENAI_MODEL,
-        openai_api_base=settings.OPENAI_API_BASE,
-        temperature=0.7,
-        tags=["router"],
-    )
+    model = ctx.llm
+    # ChatOpenAI(
+    #     openai_api_key=settings.OPENAI_API_KEY,
+    #     model_name=settings.OPENAI_MODEL,
+    #     openai_api_base=settings.OPENAI_API_BASE,
+    #     temperature=0.7,
+    #     tags=["router"],
+    # )
 
     # 拼接提示模版 + 用户的实时问题（包含历史上下文对话）
     prompt = [{"role": "system", "content": ROUTER_SYSTEM_PROMPT}] + state.messages
@@ -244,14 +251,8 @@ async def respond_to_general_query(
     """
     logger.info("-----generate general-query response-----")
 
-    # 使用大模型生成回复
-    model = ChatOpenAI(
-        openai_api_key=settings.OPENAI_API_KEY,
-        model_name=settings.OPENAI_MODEL,
-        openai_api_base=settings.OPENAI_API_BASE,
-        temperature=0.7,
-        tags=["general_query"],
-    )
+    model = ctx.llm
+    model.__setattr__("tags", "general_query")
 
     router = _ensure_router(
         getattr(state, "router", None),
@@ -282,14 +283,8 @@ async def get_additional_info(
     """
     logger.info("------continue to get additional info------")
 
-    # 使用大模型生成回复
-    model = ChatOpenAI(
-        openai_api_key=settings.OPENAI_API_KEY,
-        model_name=settings.OPENAI_MODEL,
-        openai_api_base=settings.OPENAI_API_BASE,
-        temperature=0.7,
-        tags=["additional_info"],
-    )
+    model = ctx.llm
+    model.__setattr__("tags", ["additional_info"])
     # 如果用户的问题是健身相关，但与自己的业务无关，则需要返回"无关问题"
 
     # 首先连接 Neo4j 图数据库
@@ -407,13 +402,25 @@ def _extract_configurable(config: Any) -> Dict[str, Any]:
     return {}
 
 
-# 类型三：知识库问答
+# 类型三：知识库问答 (使用 GlobalRetriever)
 async def create_kb_query(
     state: AgentState, *, config: RunnableConfig
 ) -> Dict[str, List[BaseMessage]]:
-    """通过一个多工具子图进行知识库查询."""
-    logger.info("------execute KB multi-tool query------")
-    # 提取用户的query
+    """
+    简化的知识库查询: 直接使用 GlobalRetriever
+
+    流程:
+    1. 提取用户查询
+    2. 使用 GlobalRetriever 检索
+    3. 构建 Prompt
+    4. LLM 生成回答
+    5. 返回 AIMessage with sources
+    """
+    from muscleking.app.core.context import get_global_context
+
+    logger.info("------execute KB query with GlobalRetriever------")
+
+    # 提取查询
     last_message = state.messages[-1].content if state.messages else ""
     if not last_message.strip():
         return {
@@ -421,77 +428,93 @@ async def create_kb_query(
                 AIMessage(content="请告诉我具体的问题，我才能帮您查询知识库。")
             ]
         }
-    # 提取config中的configurable字段
+
+    # 提取配置参数
     config_opts = _extract_configurable(config)
-    kb_top_k = config_opts.get("kb_top_k") or settings.KB_TOP_K
-    kb_similarity_threshold = (
-        config_opts.get("kb_similarity_threshold")
-        if config_opts.get("kb_similarity_threshold") is not None
-        else settings.KB_SIMILARITY_THRESHOLD
-    )
-    kb_filter_expr = config_opts.get("kb_filter_expr")
+    top_k = config_opts.get("kb_top_k") or settings.KB_TOP_K
 
-    knowledge_service: Optional[KnowledgeBaseService] = None
+    # 获取全局检索器
+    ctx = get_global_context()
+    retriever = ctx.retriever
+
+    # 执行检索
     try:
-        if not settings.OPENAI_API_KEY:
-            raise RuntimeError(
-                "OPENAI_API_KEY is not configured for KB multi-tool workflow."
-            )
-
-        llm = ChatOpenAI(
-            openai_api_key=settings.OPENAI_API_KEY,
-            model_name=settings.OPENAI_MODEL,
-            openai_api_base=settings.OPENAI_API_BASE,
-            temperature=0.3,
-            tags=["kb_multi_tool"],
+        logger.info(f"🔍 Searching knowledge base for: {last_message[:50]}...")
+        result = await retriever.aretrieve(
+            query=last_message,
+            top_k=20,
+            rerank_top_n=top_k,
         )
 
-        knowledge_service = KnowledgeBaseService()
-
-        external_url = settings.KB_EXTERNAL_SEARCH_URL
-        # 如果没有配置外部搜索URL，尝试从INGEST_SERVICE_URL构建
-        if not external_url and settings.INGEST_SERVICE_URL:
-            external_url = f"{settings.INGEST_SERVICE_URL.rstrip('/')}/api/search"
-        # 创建知识库多工作流
-        workflow = create_kb_multi_tool_workflow(
-            llm=llm,
-            knowledge_service=knowledge_service,
-            top_k=kb_top_k,
-            similarity_threshold=kb_similarity_threshold,
-            filter_expr=kb_filter_expr,
-            allow_external=settings.KB_ENABLE_EXTERNAL_SEARCH,
-            external_search_url=external_url,
-        )
-
-        history_payload = [
-            {
-                "role": getattr(msg, "type", "user"),
-                "content": getattr(msg, "content", ""),
+        if not result["results"]:
+            logger.info("⚠️ No relevant documents found")
+            return {
+                "messages": [
+                    AIMessage(
+                        content="抱歉，知识库中没有找到相关内容。"
+                    )
+                ]
             }
-            for msg in state.messages[:-1]
-            if getattr(msg, "content", "").strip()
+
+        # 构建 Context
+        context = _format_retrieval_results(result["results"])
+
+        # 构建 Prompt
+        model = ctx.llm
+        prompt = f"""你是健身知识科普助手，请根据以下检索结果回答用户问题。
+
+检索结果：
+{context}
+
+用户问题：{last_message}
+
+回答要求：
+1. 仅基于检索结果回答，不要编造信息
+2. 保持专业、客观、通俗易懂
+3. 如果检索结果不足，明确说明
+4. 回答结尾列出参考来源
+"""
+
+        # LLM 生成回答
+        messages = [{"role": "system", "content": prompt}]
+        response = await model.ainvoke(messages)
+
+        # 提取 sources
+        sources = [
+            doc.metadata.get("source", doc.metadata.get("title", ""))
+            for doc in result["results"]
         ]
 
-        response = await workflow.ainvoke(
-            {
-                "question": last_message,
-                "history": history_payload,
-            }
-        )
-        answer_text = response.get("answer") or "检索完成，但暂时没有可以分享的结果。"
-        sources = response.get("sources", [])
-
-        # 创建包含sources的AIMessage
-        ai_message = AIMessage(content=answer_text)
-        # 将sources附加到消息的additional_kwargs中
+        # 构建返回消息
+        ai_message = AIMessage(content=response.content)
         ai_message.additional_kwargs["sources"] = sources
 
+        logger.info(f"✅ KB query completed, {len(result['results'])} sources")
         return {"messages": [ai_message]}
+
     except Exception as exc:
-        logger.warning(
-            "KB multi-tool workflow unavailable (%s); falling back to direct search.",
-            exc,
+        logger.error(f"KB query failed: {exc}")
+        return {
+            "messages": [
+                AIMessage(
+                    content="抱歉，知识库查询遇到问题，请稍后重试。"
+                )
+            ]
+        }
+
+
+def _format_retrieval_results(docs) -> str:
+    """格式化检索结果"""
+    formatted = []
+    for i, doc in enumerate(docs):
+        content = doc.page_content
+        source = doc.metadata.get("source", "")
+        score = doc.metadata.get("score", 0.0)
+
+        formatted.append(
+            f"[来源 {i+1}] {content}\n   (相似度: {score:.3f}, 来源: {source})"
         )
+    return "\n\n".join(formatted)
 
     # # Fallback: direct KB query
     # if knowledge_service is None:
@@ -526,19 +549,9 @@ async def create_research_plan(
     """
     logger.info("------execute local knowledge base query------")
 
-    # 使用大模型生成查询/多跳、并行查询计划
-    if not settings.OPENAI_API_KEY:
-        raise RuntimeError(
-            "OPENAI_API_KEY is not configured for research plan generation."
-        )
-
-    model = ChatOpenAI(
-        openai_api_key=settings.OPENAI_API_KEY,
-        openai_api_base=settings.OPENAI_API_BASE,
-        model_name=settings.OPENAI_MODEL,
-        temperature=0.7,
-        tags=["research_plan"],
-    )
+    # 使用全局上下文中的大模型
+    model = ctx.llm
+    model.__setattr__("tags", ["research_plan"])
 
     # 初始化必要参数
     #  Neo4j图数据库连接 - 使用配置中的连接信息
@@ -623,22 +636,27 @@ async def create_research_plan(
     return {"messages": [AIMessage(content=response["answer"])]}
 
 
-checkpointer = MemorySaver()
+checkpointer = ctx.checkpointer
 
 # 定义状态图
-builder = StateGraph(AgentState, input=InputState)
-# 添加节点
-builder.add_node(analyze_and_route_query)  # 意图识别
-
-builder.add_node(respond_to_general_query)  # 默认回复
-builder.add_node(get_additional_info)  # 额外信息
-builder.add_node(create_research_plan)  # 这里是lightrag neo4j-query
-builder.add_node(create_kb_query)
-# builder.add_node(create_image_query)
-# builder.add_node(create_file_query)
+builder = StateGraph(AgentState, input_schema=InputState)
+# 添加节点（使用字符串命名，推荐做法）
+builder.add_node("analyze_and_route_query", analyze_and_route_query)  # 意图识别
+builder.add_node("respond_to_general_query", respond_to_general_query)  # 默认回复
+builder.add_node("get_additional_info", get_additional_info)  # 额外信息
+builder.add_node("create_research_plan", create_research_plan)  # lightrag neo4j-query
+builder.add_node("create_kb_query", create_kb_query)  # 知识库查询
+# builder.add_node("create_image_query", create_image_query)
+# builder.add_node("create_file_query", create_file_query)
 
 # 添加边
-builder.add_edge(START, analyze_and_route_query)
-builder.add_conditional_edges(analyze_and_route_query, route_query)
+builder.add_edge(START, "analyze_and_route_query")
+# 根据路由结果分发到不同的处理节点
+builder.add_conditional_edges("analyze_and_route_query", route_query)
+# 所有处理节点都连接到结束
+builder.add_edge("respond_to_general_query", "__end__")
+builder.add_edge("get_additional_info", "__end__")
+builder.add_edge("create_research_plan", "__end__")
+builder.add_edge("create_kb_query", "__end__")
 
 graph = builder.compile(checkpointer=checkpointer)
