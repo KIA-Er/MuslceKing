@@ -2,8 +2,12 @@
 
 **日期**: 2026-04-14
 **作者**: Claude Code
-**状态**: 设计阶段
-**目标**: 简化知识库查询为直接 Milvus 向量检索，使用 LangChain RAG 标准流程
+**状态**: 设计阶段 v2
+**目标**: 简化知识库查询为直接 Milvus 向量检索，使用 LangChain RAG 标准流程，学习 vLLM 部署
+
+**变更历史**:
+- v1 (2026-04-14): 初始设计
+- v2 (2026-04-14): 添加 vLLM Embedding 部署、AppContext 全局单例、任务解耦
 
 ---
 
@@ -28,8 +32,10 @@
 - 移除复杂的多工具工作流
 - 移除 PostgreSQL pgvector 检索
 - 使用 LangChain 标准 RAG 流程
-- 启用 BGE-M3 Embedding + BGE-Reranker
+- **使用 vLLM 部署 BGE-M3 Embedding** (学习目标)
+- **在 AppContext 中注册全局 Retriever 单例**
 - 每个模块都有完整的单元测试
+- **任务解耦，MVP 优先**
 
 ---
 
@@ -38,34 +44,70 @@
 ### 2.1 架构图
 
 ```
-用户查询 → LangGraph Router
-                ↓
-        (route: kb-query)
-                ↓
-    create_kb_query 节点
-                ↓
-        LangChain RAG 流程
-                ↓
-    ┌───────────────────────┐
-    │  1. Embed Query       │ BGE-M3 (1024维)
-    │  2. Milvus 检索       │ Top-20 候选
-    │  3. Reranker 重排序   │ Top-5 精排
-    │  4. 构建 Prompt        │ Context + Query
-    │  5. LLM 生成回答       │ Qwen LLM
-    └───────────────────────┘
-                ↓
-    返回 AIMessage(content, sources)
+┌─────────────────────────────────────────────────────────┐
+│                   基础设施层                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐ │
+│  │  vLLM Embed  │  │   Milvus     │  │  vLLM LLM    │ │
+│  │  (BGE-M3)    │  │  Vector DB   │  │  (Qwen)      │ │
+│  │  Port: 8001  │  │  Port: 19530 │  │  Port: 8000  │ │
+│  └──────────────┘  └──────────────┘  └──────────────┘ │
+└─────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│                   应用层 (AppContext)                    │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  GlobalRetriever (单例)                            │ │
+│  │  - EmbeddingClient (vLLM)                          │ │
+│  │  - RerankerModel (SentenceTransformers)           │ │
+│  │  - MilvusClient                                    │ │
+│  └────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────┐
+│                   业务层 (LangGraph)                     │
+│  用户查询 → Router → create_kb_query 节点               │
+│                     ↓                                    │
+│              RAG Chain                                  │
+│                     ↓                                    │
+│  返回 AIMessage(content, sources)                       │
+└─────────────────────────────────────────────────────────┘
 ```
 
 ### 2.2 核心组件
 
-| 组件 | 技术选型 | 用途 |
-|------|---------|------|
-| **Embedding** | BAAI/bge-m3 | 查询和文档向量化 (1024维) |
-| **向量存储** | Milvus 2.6+ | 存储和检索向量 |
-| **重排序** | BAAI/bge-reranker-v2-m3 | 提高检索准确度 |
-| **RAG 框架** | LangChain | 标准化 RAG 流程 |
-| **生成模型** | Qwen LLM | 生成最终回答 |
+| 组件 | 技术选型 | 部署方式 | 用途 |
+|------|---------|---------|------|
+| **Embedding** | BAAI/bge-m3 | **vLLM Server** | 查询和文档向量化 (1024维) |
+| **向量存储** | Milvus 2.6+ | Docker Compose | 存储和检索向量 |
+| **重排序** | BAAI/bge-reranker-v2-m3 | SentenceTransformers (本地) | 提高检索准确度 |
+| **全局检索器** | GlobalRetriever | AppContext 单例 | 统一检索接口 |
+| **RAG 框架** | LangChain | 代码模块 | 标准化 RAG 流程 |
+| **生成模型** | Qwen LLM | vLLM Server (已有) | 生成最终回答 |
+
+### 2.3 全局单例设计
+
+**AppContext 中的 GlobalRetriever**:
+
+```python
+# muscleking/app/core/context.py
+
+class GlobalContext:
+    """全局上下文，管理共享资源"""
+
+    def __init__(self):
+        self._retriever: Optional[GlobalRetriever] = None
+
+    @property
+    def retriever(self) -> GlobalRetriever:
+        """获取全局检索器单例"""
+        if self._retriever is None:
+            self._retriever = GlobalRetriever()
+        return self._retriever
+
+# 全局访问
+ctx = get_global_context()
+retriever = ctx.retriever  # 自动初始化并复用
+```
 
 ### 2.3 检索策略
 
@@ -78,7 +120,250 @@
 
 ## 3. 详细设计
 
-### 3.1 Milvus 部署
+### 3.1 vLLM Embedding 部署 (学习重点) 🎯
+
+#### 3.1.1 部署架构
+
+**vLLM Embedding Server** (独立容器):
+
+```yaml
+# docker-compose.yml
+services:
+  vllm-embedding:
+    image: vllm/vllm:v0.6.4
+    container_name: vllm-embedding
+    ports:
+      - "8001:8000"  # 映射到 8001 端口
+    environment:
+      - MODEL_NAME=BAAI/bge-m3
+      - MAX_MODEL_LEN=8192
+      - GPU_MEMORY_UTILIZATION=0.9
+    command: >
+      --model BAAI/bge-m3
+      --port 8000
+      --embedding-mode True
+      --max-model-len 8192
+      --gpu-memory-utilization 0.9
+      --dtype auto
+      --trust-remote-code
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ~/.cache/huggingface:/root/.cache/huggingface
+    restart: unless-stopped
+```
+
+#### 3.1.2 启动脚本
+
+```bash
+#!/bin/bash
+# scripts/start_vllm_embedding.sh
+
+echo "🚀 Starting vLLM Embedding Server (BGE-M3)..."
+
+# 检查 GPU
+nvidia-smi
+
+# 启动 vLLM Embedding Server
+docker run -d \
+  --name vllm-embedding \
+  --gpus all \
+  -p 8001:8000 \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  vllm/vllm:v0.6.4 \
+  --model BAAI/bge-m3 \
+  --embedding-mode True \
+  --max-model-len 8192 \
+  --trust-remote-code
+
+echo "⏳ Waiting for vLLM to start..."
+sleep 30
+
+# 健康检查
+curl -s http://localhost:8001/health || echo "❌ Health check failed"
+
+echo "✅ vLLM Embedding Server started on port 8001"
+```
+
+#### 3.1.3 Embedding Client
+
+```python
+# muscleking/app/rag/embeddings.py
+
+from openai import OpenAI
+from typing import List
+import numpy as np
+
+class VLLMEmbeddingClient:
+    """vLLM Embedding Client"""
+
+    def __init__(self, base_url: str = "http://localhost:8001/v1"):
+        self.client = OpenAI(
+            base_url=base_url,
+            api_key="dummy"  # vLLM 不验证
+        )
+
+    def embed_query(self, text: str) -> List[float]:
+        """对单个查询进行 embedding"""
+        response = self.client.embeddings.create(
+            model="BAAI/bge-m3",
+            input=text
+        )
+        return response.data[0].embedding
+
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """批量 embedding 文档"""
+        response = self.client.embeddings.create(
+            model="BAAI/bge-m3",
+            input=texts
+        )
+        return [item.embedding for item in response.data]
+
+    @property
+    def dimension(self) -> int:
+        """返回 embedding 维度"""
+        return 1024  # BGE-M3 的维度
+```
+
+#### 3.1.4 验证脚本
+
+```python
+# scripts/test_vllm_embedding.py
+
+import requests
+import json
+
+def test_vllm_embedding():
+    """测试 vLLM Embedding 服务"""
+
+    # 健康检查
+    response = requests.get("http://localhost:8001/health")
+    assert response.status_code == 200
+    print("✅ Health check passed")
+
+    # Embedding 测试
+    payload = {
+        "model": "BAAI/bge-m3",
+        "input": ["如何锻炼胸肌？", "卧推的正确姿势"]
+    }
+
+    response = requests.post(
+        "http://localhost:8001/v1/embeddings",
+        json=payload
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert "data" in data
+    assert len(data["data"]) == 2
+    assert len(data["data"][0]["embedding"]) == 1024
+
+    print(f"✅ Embedding test passed")
+    print(f"   - Dimension: {len(data['data'][0]['embedding'])}")
+    print(f"   - Sample values: {data['data'][0]['embedding'][:5]}")
+
+if __name__ == "__main__":
+    test_vllm_embedding()
+```
+
+#### 3.1.5 性能测试
+
+```python
+# scripts/benchmark_vllm_embedding.py
+
+import time
+import requests
+import numpy as np
+
+def benchmark_embedding():
+    """测试 vLLM Embedding 性能"""
+
+    client_url = "http://localhost:8001/v1/embeddings"
+
+    # 测试不同 batch size
+    batch_sizes = [1, 8, 16, 32, 64]
+    texts = ["测试文本" * 20] * 64  # 固定文本
+
+    results = []
+
+    for batch_size in batch_sizes:
+        batch_texts = texts[:batch_size]
+
+        start = time.time()
+        response = requests.post(
+            client_url,
+            json={
+                "model": "BAAI/bge-m3",
+                "input": batch_texts
+            }
+        )
+        elapsed = time.time() - start
+
+        throughput = batch_size / elapsed
+        results.append({
+            "batch_size": batch_size,
+            "elapsed": elapsed,
+            "throughput": throughput
+        })
+
+        print(f"Batch {batch_size:2d}: {elapsed:.3f}s → {throughput:.1f} docs/s")
+
+    # 找到最佳 batch size
+    best = max(results, key=lambda x: x["throughput"])
+    print(f"\n🏆 最佳配置: batch_size={best['batch_size']}, throughput={best['throughput']:.1f} docs/s")
+
+if __name__ == "__main__":
+    benchmark_embedding()
+```
+
+#### 3.1.6 故障排查
+
+```python
+# scripts/debug_vllm_embedding.py
+
+def debug_vllm_embedding():
+    """调试 vLLM Embedding 服务"""
+
+    import subprocess
+
+    print("🔍 检查 vLLM 容器状态...")
+    result = subprocess.run(
+        ["docker", "ps", "-a", "--filter", "name=vllm-embedding"],
+        capture_output=True,
+        text=True
+    )
+    print(result.stdout)
+
+    print("\n🔍 检查容器日志...")
+    result = subprocess.run(
+        ["docker", "logs", "--tail", "50", "vllm-embedding"],
+        capture_output=True,
+        text=True
+    )
+    print(result.stdout)
+
+    print("\n🔍 检查 GPU 使用情况...")
+    result = subprocess.run(["nvidia-smi"], capture_output=True, text=True)
+    print(result.stdout)
+
+    print("\n🔍 测试 API 连接...")
+    try:
+        response = requests.get("http://localhost:8001/health", timeout=5)
+        print(f"✅ API 响应: {response.status_code}")
+    except Exception as e:
+        print(f"❌ API 连接失败: {e}")
+
+if __name__ == "__main__":
+    debug_vllm_embedding()
+```
+
+### 3.2 Milvus 部署
 
 **部署方式**: Docker Compose (Standalone 模式)
 
