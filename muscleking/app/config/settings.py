@@ -115,35 +115,47 @@ class Settings(BaseSettings):
         description="Embedding 向量维度"
     )
 
-    # MILVUS_HOST: str = "localhost"
-    # MILVUS_PORT: int = 19530
-    # MILVUS_COLLECTION: str = "fitness"
-    # MILVUS_INDEX_TYPE: str = "IVF_FLAT" # 倒排索引（IVF） + 精确计算（FLAT）
-    # MILVUS_METRIC_TYPE: str = "IP"  # 内积（Inner Product）
+    # Milvus 配置
+    MILVUS_CONNECTION_STRING: str = Field(
+        default="http://localhost:19530",
+        description="Milvus 连接字符串"
+    )
+    MILVUS_COLLECTION: str = Field(
+        default="fitness_knowledge",
+        description="Milvus 集合名称"
+    )
 
-    # # Embedding configuration
-    # EMBEDDING_MODEL_NAME: str = Field(default="Qwen/Qwen3-Embedding-0.6B", description="Embedding model name")
-    # EMBEDDING_API_KEY: Optional[str] = None
-    # EMBEDDING_BASE_URL: Optional[str] = None
-    # EMBEDDING_DIMENSION: Optional[int] = Field(default=1024, description="Embedding dimension")
+    # Reranker 配置 (本地模型)
+    RERANK_MODEL: str = Field(
+        default="BAAI/bge-reranker-v2-m3",
+        description="Reranker 模型名称"
+    )
+    ENABLE_RERANK: bool = Field(
+        default=True,
+        description="是否启用 Reranker"
+    )
+    RERANK_MAX_CANDIDATES: int = Field(
+        default=20,
+        description="Reranker 最大候选数"
+    )
+    RERANK_TOP_N: int = Field(
+        default=5,
+        description="Reranker 返回 top-n"
+    )
+    RERANK_SCORE_THRESHOLD: float = Field(
+        default=0.3,
+        description="Reranker 分数阈值"
+    )
 
-    # # Reranker configuration
-    # ENABLE_RERANK: bool = Field(default=True, description="Enable reranking")
-    # RERANK_ENABLED: bool = Field(default=True, description="Enable reranking")
-    # RERANK_PROVIDER: str = Field(default="custom", description="Rerank provider: cohere, jina, voyage, custom")
-    # RERANK_BASE_URL: Optional[str] = Field(default=None, description="Rerank API base URL")
-    # RERANK_ENDPOINT: str = Field(default="/rerank", description="Rerank endpoint path")
-    # RERANK_MODEL: str = Field(default="BAAI/bge-reranker-v2-m3", description="Rerank model name")
-    # RERANK_API_KEY: Optional[str] = None
-    # RERANK_MAX_CANDIDATES: int = Field(default=20, description="Max candidates for reranking")
-    # RERANK_TOP_N: int = Field(default=6, description="Top N results after reranking")
-    # RERANK_TIMEOUT: int = Field(default=30, description="Rerank API timeout in seconds")
-    # RERANK_SCORE_FUSION_ALPHA: Optional[float] = Field(default=None, description="Score fusion alpha parameter")
-
-    # KB_RERANK_SCORE_THRESHOLD: float = Field(
-    #     default=0.8,
-    #     description="Minimum rerank score required for vector results (e.g., Milvus)",
-    # )
+    # 检索配置
+    KB_TOP_K: int = Field(
+        default=5,
+        description="检索返回数量"
+    )
+    KB_SIMILARITY_THRESHOLD: float = Field(
+        default=0.2,
+        description="相似度阈值"
+    )
 
 
 
