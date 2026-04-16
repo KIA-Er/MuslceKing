@@ -101,16 +101,16 @@ class Settings(BaseSettings):
     #     description="Chunk overlap used when splitting documents",
     # )
 
-    # vLLM Embedding 配置
-    VLLM_EMBEDDING_BASE_URL: str = Field(
+    # Embedding_model 配置
+    EMBEDDING_BASE_URL: str = Field(
         default="http://localhost:50001/v1",
         description="vLLM Embedding 服务地址"
     )
-    VLLM_EMBEDDING_MODEL: str = Field(
-        default="BAAI/bge-m3",
+    EMBEDDING_MODEL: str = Field(
+        default="Qwen/Qwen3-Embedding-0.6B",
         description="vLLM Embedding 模型名称"
     )
-    VLLM_EMBEDDING_DIMENSION: int = Field(
+    EMBEDDING_DIMENSION: int = Field(
         default=1024,
         description="Embedding 向量维度"
     )

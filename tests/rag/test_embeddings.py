@@ -1,7 +1,7 @@
 """测试 VLLMEmbeddingClient"""
 
 import pytest
-from muscleking.app.rag.embeddings import VLLMEmbeddingClient
+from muscleking.app.retrieval.embeddings import VLLMEmbeddingClient
 
 
 @pytest.fixture

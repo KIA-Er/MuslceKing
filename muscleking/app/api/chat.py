@@ -11,7 +11,7 @@ from muscleking.app.services.service_chat import (
     save_message,
     process_agent_query,
 )
-from muscleking.app.persistence.core.database import get_db
+from muscleking.app.storage.core.database import get_db
 
 router = APIRouter(tags=["Unified Chat"])
 

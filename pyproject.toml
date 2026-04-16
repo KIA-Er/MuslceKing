@@ -20,6 +20,7 @@ dependencies = [
     "langsmith>=0.1.0",
     "loguru>=0.7.3",
     "makefile>=1.1.0",
+    "milvus-lite>=2.5.1",
     "msgpack>=1.1.2",
     "psycopg[binary,pool]>=3.3.3",
     "pymilvus>=2.6.11",
@@ -29,14 +30,9 @@ dependencies = [
     "torch>=2.11.0",
     "uuid6>=2025.0.1",
     "uvicorn>=0.43.0",
-    "vllm",
 ]
 
 [dependency-groups]
 dev = [
     "ipykernel>=7.2.0",
-    "pytest>=8.0.0",
-    "pytest-asyncio>=0.23.0",
-    "pytest-mock>=3.12.0",
-    "pytest-cov>=4.1.0",
 ]

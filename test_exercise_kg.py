@@ -120,7 +120,7 @@ async def test_graph_construction():
     print("测试知识图谱构建功能")
     print("=" * 60)
 
-    from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
+    from muscleking.app.storage.core.neo4jconn import get_neo4j_graph
     from muscleking.app.config import settings
     from build_exercise_kg import ExerciseKGBuilder
 

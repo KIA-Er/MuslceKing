@@ -184,3 +184,4 @@ cython_debug/
 *md
 !README.md
 !.claude.md
+**/docs

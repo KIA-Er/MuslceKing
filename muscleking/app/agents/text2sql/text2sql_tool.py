@@ -6,7 +6,7 @@ Text2SQL LangGraph pipeline implemented under ``gustobot.application.agents.text
 """
 
 from typing import Dict, Any, Coroutine, Callable, List
-from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
+from muscleking.app.storage.core.neo4jconn import get_neo4j_graph
 from muscleking.app.agents.text2sql.text2sql_workflow import create_text2sql_workflow
 from loguru import logger
 from muscleking.app.agents.cyper_tools.cypher_node import CypherQueryOutputState

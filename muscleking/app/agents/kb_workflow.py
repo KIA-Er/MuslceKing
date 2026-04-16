@@ -236,8 +236,8 @@ def create_kb_multi_tool_workflow(
             history_list.append(f"{role}:{content}")
         return "\n".join(history_list)
 
-    async def router(state: KBWorkflowState) -> Dict[str, Any]:
         """路由用户问题到合适的处理模块"""
+    async def router(state: KBWorkflowState) -> Dict[str, Any]:
         question = state.get("question", "")
         # 转换历史记录为文本格式
         history_text = _history_to_text(state.get("history", []))

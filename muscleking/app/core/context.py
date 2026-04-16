@@ -1,29 +1,36 @@
-from typing import Optional
 from muscleking.app.config import Settings
 from muscleking.app.resource.factories.middleware_factory import MiddlewareFactory
 from muscleking.app.resource.factories.model_factory import ModelBackendFactory
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
-from muscleking.app.rag.global_retriever import GlobalRetriever
+from muscleking.app.retrieval.embedding_model.qwen_embedding import QwenEmbedding
+from muscleking.app.retrieval.reranker.qwen_reranker import QwenReranker
+from muscleking.app.retrieval.retriever import Retriever
 
 
 class AppContext:
     def __init__(self, settings: Settings) -> None:
         self.llm = ModelBackendFactory.create_llm(settings)
-        self.embedding_model = ModelBackendFactory.create_embedding_model(settings)
-        self.reranker = ModelBackendFactory.create_reranker(settings)
 
-        self.checkpointer:AsyncPostgresSaver | None = None
-        self._retriever: Optional[GlobalRetriever] = None
+        # Milvus 客户端
+        self.milvus_client = MiddlewareFactory.create_milvus_client(settings)
+        self.milvus_storage = MiddlewareFactory.create_milvus_storage(self.milvus_client, settings)
 
-    @property
-    def retriever(self) -> GlobalRetriever:
-        """获取全局检索器单例"""
-        if self._retriever is None:
-            self._retriever = GlobalRetriever()
-        return self._retriever
+        # 检索器（内部持有 embedding_model + reranker）
+        self.embedding_model: QwenEmbedding = ModelBackendFactory.create_embedding_model(settings)
+        self.reranker: QwenReranker | None = ModelBackendFactory.create_reranker(settings) if settings.ENABLE_RERANK else None
+        self.retriever: Retriever = ModelBackendFactory.create_retriever(
+            self.milvus_storage,
+            self.embedding_model,
+            self.reranker,
+        )
 
-    def close(self,):
-        pass
+        self.checkpointer: AsyncPostgresSaver | None = None
+
+
+    async def close(self):
+        if self.milvus_client:
+            self.milvus_client.close()
+
 
 _global_app_context: AppContext | None = None
 

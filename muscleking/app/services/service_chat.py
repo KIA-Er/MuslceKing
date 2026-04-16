@@ -4,14 +4,22 @@
 
 from typing import Optional, Dict, Any
 import uuid
+from datetime import datetime
 from sqlalchemy.orm import Session
 from muscleking.app.agents.lg_builder import graph
 from loguru import logger
-from muscleking.app.persistence.crud.base import chat_session
+from muscleking.app.storage.crud.base import chat_session
+
+
+def generate_session_id() -> str:
+    """生成session_id: session_{YYYYMMDD}_{Random}"""
+    date_str = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+    random_part = str(uuid.uuid4())[:8]
+    return f"session_{date_str}_{random_part}"
 
 
 async def get_or_create_session(
-    db: Session, session_id: Optional[str], user_id: str
+    db: Session, user_id: str, session_id: str | None = None,
 ) -> str:
     """获取或创建聊天会话"""
     if session_id:
@@ -21,14 +29,14 @@ async def get_or_create_session(
             return session_id
         else:
             # 如果会话不存在，创建新会话
-            new_session_id = str(uuid.uuid4())
+            new_session_id = generate_session_id()
             chat_session.create(
                 db, obj_in={"id": new_session_id, "user_id": user_id, "title": "新会话"}
             )
             return new_session_id
     else:
         # 创建新会话
-        new_session_id = str(uuid.uuid4())
+        new_session_id = generate_session_id()
         chat_session.create(
             db, obj_in={"id": new_session_id, "user_id": user_id, "title": "新会话"}
         )
@@ -47,7 +55,7 @@ async def save_message(
     message_id = str(uuid.uuid4())
 
     # 获取当前会话的消息数量作为order_index
-    from muscleking.app.persistence.db.models.chat_message import ChatMessage
+    from muscleking.app.storage.db.models.chat_message import ChatMessage
 
     max_order = (
         db.query(ChatMessage).filter(ChatMessage.session_id == session_id).count()
@@ -68,7 +76,6 @@ async def save_message(
     db.refresh(chat_message)
 
     return message_id
-
 
 async def process_agent_query(
     message: str,

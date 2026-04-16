@@ -2,10 +2,17 @@
 MuscleKing FastAPI application entry point.
 """
 
+import sys
+from pathlib import Path
+
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from muscleking.app.config.settings import settings
+
 from muscleking.app.api import api_v1_router
+from muscleking.app.config.settings import settings
 from muscleking.app.core import lifespan
 
 # 创建FastAPI应用

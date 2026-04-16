@@ -2,7 +2,7 @@ from typing import Any, Callable, Coroutine, Dict, List
 from pydantic import BaseModel
 
 # 导入必要的模块
-from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
+from muscleking.app.storage.core.neo4jconn import get_neo4j_graph
 from loguru import logger
 from langchain_openai import ChatOpenAI
 from muscleking.app.config import settings

@@ -17,9 +17,9 @@ from sqlalchemy.orm import Session
 import uuid
 from datetime import datetime
 
-from muscleking.app.persistence.core.database import get_db, init_db
-from muscleking.app.persistence.db.models.chat_session import ChatSession
-from muscleking.app.persistence.db.models.chat_message import ChatMessage
+from muscleking.app.storage.core.database import get_db, init_db
+from muscleking.app.storage.db.models.chat_session import ChatSession
+from muscleking.app.storage.db.models.chat_message import ChatMessage
 from muscleking.app.config.settings import settings
 
 
@@ -70,7 +70,7 @@ app.add_middleware(
 )
 
 
-from muscleking.app.persistence.crud.base import chat_session
+from muscleking.app.storage.crud.base import chat_session
 
 
 def get_or_create_session(db: Session, session_id: Optional[str], user_id: str) -> str:

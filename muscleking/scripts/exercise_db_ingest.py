@@ -39,7 +39,7 @@ except ImportError:
     NEO4J_PASSWORD = "muscleking"
     NEO4J_DATABASE = "neo4j"
 
-from muscleking.app.persistence.core.neo4jconn import get_neo4j_graph
+from muscleking.app.storage.core.neo4jconn import get_neo4j_graph
 
 
 # exerciseDB API 基础 URL
