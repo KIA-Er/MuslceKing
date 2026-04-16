@@ -185,3 +185,4 @@ cython_debug/
 !README.md
 !.claude.md
 **/docs
+.env
